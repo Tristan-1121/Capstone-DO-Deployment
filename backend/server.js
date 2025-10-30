@@ -1,6 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import authRoutes from './routes/auth.js'
+import appointmentRoutes from './routes/appointment.js'
 import { connectDB } from './config/db.js';
 dotenv.config();
 
@@ -20,7 +21,6 @@ app.use("/api/users", authRoutes)
 connectDB();
 
 app.listen(PORT, () => {  console.log(`Server started at port ${PORT}`); });
-
 
 
 
