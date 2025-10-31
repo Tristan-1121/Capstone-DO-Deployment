@@ -12,3 +12,8 @@ const appointmentSchema = new mongoose.Schema({
     notes: [noteSchema]
 }, { timestamps: true });
 
+
+// Export a Mongoose model (consistent with other models)
+const Appointment = mongoose.model('Appointment', appointmentSchema);
+
+export default Appointment;
