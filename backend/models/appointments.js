@@ -1,6 +1,7 @@
 import mongoose from 'mongoose';
+import noteSchema from './notes.js';
 
-//appointment schema
+// appointment schema
 const appointmentSchema = new mongoose.Schema({
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'Patient', required: true },
     date: { type: Date, required: true },
@@ -11,6 +12,3 @@ const appointmentSchema = new mongoose.Schema({
     notes: [noteSchema]
 }, { timestamps: true });
 
-const Appointment = mongoose.model('Appointment', appointmentSchema);
-
-export default Appointment;
