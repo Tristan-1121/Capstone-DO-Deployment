@@ -10,3 +10,7 @@ const appointmentSchema = new mongoose.Schema({
     status: { type: String, enum: ['scheduled', 'completed', 'canceled'], default: 'scheduled' },
     notes: [noteSchema]
 }, { timestamps: true });
+
+const Appointment = mongoose.model('Appointment', appointmentSchema);
+
+export default Appointment;
