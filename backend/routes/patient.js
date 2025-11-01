@@ -1,27 +1,43 @@
-import Patient from '../models/Patient.js'
+// backend/routes/patient.js
+// Patient profile routes
 
-//Get all health data for patient
-router.get("/me/Patient", protect, async (req, res) => {
-    try {
-        const patientData = await Patient.findOne({ user: req.user.id });
-        res.status(200).json(patientData);
-    } catch (e) {
-        res.status(500).json({ message: "Server error" });
-    }
+import express from 'express';
+import User from '../models/User.js';
+import { protect } from '../middleware/auth.js';
+
+const router = express.Router();
+
+// GET user profile
+router.get('/me', protect, async (req, res) => {
+  try {
+    const { password, ...safeUser } = req.user.toObject();
+    res.json(safeUser);
+  } catch (err) {
+    console.error('GET /patients/me', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
+// UPDATE user profile
+router.put('/me', protect, async (req, res) => {
+  try {
+    const ALLOWED = ['fullName', 'age', 'weight', 'healthHistory'];
+    const update = {};
 
-//Update patient health data
-router.put("/me/Patient", protect, async (req, res) => {
-    try {
-        let patientData = await Patient.findOne({ user: req.user.id });
-        if (!patientData) {
-            patientData = await Patient.create({ user: req.user.id, ...req.body });
-        } else {
-            patientData = await Patient.findOneAndUpdate({ user: req.user.id }, req.body, { new: true });
-        }
-        res.status(200).json(patientData);
-    } catch (e) {
-        res.status(500).json({ message: "Server error" });
-    }
+    ALLOWED.forEach(key => {
+      if (key in req.body) update[key] = req.body[key];
+    });
+
+    const updated = await User.findByIdAndUpdate(req.user._id, update, {
+      new: true,
+      runValidators: true
+    }).select('-password');
+
+    res.json(updated);
+  } catch (err) {
+    console.error('PUT /patients/me', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
+
+export default router;

@@ -1,66 +1,59 @@
 import axios from "axios";
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext"; // read/write token & user for the whole app
 
-// Login component to handle user login
-const Login = ({ setUser }) => {
-    
-  // Set initial state for form data
-  const [formData, setFormData] = useState({
-    email: "",
-    password: "",
-  });
+export default function Login() {
+  // read global setters from context so Navbar/guards see changes
+  const { setToken, setUser } = useAuth();
 
-  // To handle any error messages
+  // local form state
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
-
-  // For page navigation after successful login
   const navigate = useNavigate();
 
-  // This function updates form fields as the user types
+  // keep inputs controlled
   const handleChange = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  // This function handles form submission
+  // submit to API, persist token, hydrate global auth state, then go to /profile
   const handleSubmit = async (e) => {
-    e.preventDefault(); // Prevents page refresh
+    e.preventDefault();
     try {
-      // Send login request to backend API
       const res = await axios.post("/api/users/login", formData);
 
-      // Save the token to local storage for authentication
+      // persist token so refresh keeps you logged in
       localStorage.setItem("token", res.data.token);
 
-      // Log the response and update user state
-      console.log(res.data);
-      setUser(res.data);
+      // update global auth for the app shell (Navbar, guards, API helpers)
+      setToken(res.data.token);
+      setUser({
+        id: res.data.id,
+        username: res.data.username,
+        email: res.data.email,
+        // include fullName/role if your backend returns them
+        fullName: res.data.fullName,
+        role: res.data.role,
+      });
 
-      // Redirect to homepage after login
-      navigate("/");
+      // land on the patient homepage (Profile)
+      navigate("/profile");
     } catch (err) {
-      // Show error message if login fails
       setError(err.response?.data?.message || "Login failed");
     }
   };
 
   return (
-    // Main container with centered form
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-200">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">
-          Login
-        </h2>
+        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
 
-        {/* Display error message if login fails */}
         {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
 
-        {/* Login form */}
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-gray-600 text-sm font-medium mb-1">
-              Email
-            </label>
+            <label className="block text-gray-600 text-sm font-medium mb-1">Email</label>
             <input
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 outline-none focus:border-blue-400"
               type="email"
@@ -74,9 +67,7 @@ const Login = ({ setUser }) => {
           </div>
 
           <div className="mb-6">
-            <label className="block text-gray-600 text-sm font-medium mb-1">
-              Password
-            </label>
+            <label className="block text-gray-600 text-sm font-medium mb-1">Password</label>
             <input
               className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 outline-none focus:border-blue-400"
               type="password"
@@ -88,14 +79,11 @@ const Login = ({ setUser }) => {
             />
           </div>
 
-          {/* Submit button */}
-          <button className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 font-medium cursor-pointer">
+          <button className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 font-medium">
             Login
           </button>
         </form>
       </div>
     </div>
   );
-};
-
-export default Login;
+}

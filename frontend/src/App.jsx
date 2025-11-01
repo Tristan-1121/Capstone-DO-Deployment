@@ -1,67 +1,43 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-  Navigate,
-} from "react-router-dom";
-import Navbar from "./components/Navbar";
-import Home from "./pages/Home";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import { useEffect, useState } from "react";
-import axios from "axios";
-import NotFound from "./components/NotFound";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider } from "./context/AuthContext";
+import RequireAuth from "./components/auth/RequireAuth";
+import Layout from "./components/layout/Layout";
 
-function App() {
-  const [user, setUser] = useState(null);
-  const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  console.log(user);
-  useEffect(() => {
-    const fetchUser = async () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const res = await axios.get("/api/users/me", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          setUser(res.data);
-        } catch (err) {
-          console.error(err);
-          setError("Failed to fetch user data");
-          localStorage.removeItem("token");
-        }
-      }
-      setIsLoading(false);
-    };
-    fetchUser();
-  }, []);
+import Login from "./pages/Login.jsx";
+import Register from "./pages/Register.jsx";
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-gray-900 flex items-center justify-center">
-        <div className="text-xl text-white">Loading...</div>
-      </div>
-    );
-  }
+import Profile from "./pages/Profile.jsx";
+import Appointments from "./pages/Appointments.jsx";
+import Visits from "./pages/Visits.jsx";
+import Medication from "./pages/Medication.jsx";
+import About from "./pages/About.jsx";
+import NotFound from "./components/NotFound.jsx";
 
+export default function App() {
   return (
-    <Router>
-      <Navbar user={user} setUser={setUser} />
-      <Routes>
-        <Route path="/" element={<Home user={user} error={error} />} />
-        <Route
-          path="/login"
-          element={user ? <Navigate to="/" /> : <Login setUser={setUser} />}
-        />
-        <Route
-          path="/register"
-          element={user ? <Navigate to="/" /> : <Register setUser={setUser} />}
-        />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          {/* public */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* protected shell */}
+          <Route element={<RequireAuth />}>
+            <Route element={<Layout />}>
+              <Route path="/" element={<Navigate to="/profile" replace />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/appointments" element={<Appointments />} />
+              <Route path="/visits" element={<Visits />} />
+              <Route path="/medication" element={<Medication />} />
+              <Route path="/about" element={<About />} />
+            </Route>
+          </Route>
+
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
-
-export default App;
