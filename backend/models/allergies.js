@@ -1,9 +1,9 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-//allergy subdocument schema
 const allergySchema = new mongoose.Schema({
-    allergen: { type: String, required: true },
-    reaction: { type: String, required: true },
-}, { _id: false });
+  allergen: { type: String, required: true },
+  reaction: { type: String, required: true },
+  severity: { type: String, enum: ["Mild", "Moderate", "Severe"], default: "Mild" },
+});
 
 export default allergySchema;
