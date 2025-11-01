@@ -8,6 +8,7 @@ import Navbar from "./components/Navbar";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import Form from "./pages/PatientInfoForm";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import NotFound from "./components/NotFound";
@@ -50,6 +51,7 @@ function App() {
       <Navbar user={user} setUser={setUser} />
       <Routes>
         <Route path="/" element={<Home user={user} error={error} />} />
+        <Route path="/patient-info" element={<Form user={user} error={error} />} />
         <Route
           path="/login"
           element={user ? <Navigate to="/" /> : <Login setUser={setUser} />}
