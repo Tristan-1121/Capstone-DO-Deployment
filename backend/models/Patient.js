@@ -1,16 +1,5 @@
 import mongoose from "mongoose";
 
-<<<<<<< HEAD
-const patientHealthSchema = new mongoose.Schema({
-    Age: { type: Number, required: true },
-    Weight: { type: Number, required: true },
-    Height: { type: Number, required: true },
-    Sex: { type: String, required: true },
-    MedHist: { [medicalHistory], required: true },
-    Prescriptions: { [prescriptions], required: true },
-    Allergies: { [allergies], required: true },
-})
-=======
 const allergySchema = new mongoose.Schema({
   allergen: { type: String, required: true },
   reaction: { type: String, required: true },
@@ -53,8 +42,5 @@ const patientSchema = new mongoose.Schema({
 });
 
 export default mongoose.model("Patient", patientSchema);
-
-
->>>>>>> c439b79cf8d49f1acab487e9cb480b328f2fe3b2
 
 
