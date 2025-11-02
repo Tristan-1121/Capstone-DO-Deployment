@@ -1,43 +1,34 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
-const Navbar = ({ user, setUser }) => {
-  const navigate = useNavigate();
-
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    navigate("/");
-  };
+export default function Navbar({ onToggleSidebar }) {
+  const { user, logout } = useAuth();
 
   return (
-    <nav className="bg-gray-800 p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-white text-lg font-bold">
-          UWF ConnectCare
-        </Link>
-        <div>
-          {user ? (
-            <button
-              onClick={handleLogout}
-              className="text-white bg-red-500 px-4 py-2 rounded hover:bg-red-600"
-            >
-              Logout
-            </button>
-          ) : (
-            <>
-              <Link className="text-white mx-2 hover:underline" to="/login">
-                Login
-              </Link>
-              <Link className="text-white mx-2 hover:underline" to="/register">
-                Register
-              </Link>
-            </>
-          )}
-        </div>
+    <header className="h-14 bg-[#003E7E] text-white flex items-center justify-between px-4">
+      <div className="flex items-center gap-3">
+        <button
+          onClick={onToggleSidebar}
+          className="rounded px-2 py-1 hover:bg-white/10"
+          title="Toggle sidebar"
+          aria-label="Toggle sidebar"
+        >
+          ☰
+        </button>
+        <div className="font-semibold">UWF CareConnect</div>
       </div>
-    </nav>
-  );
-};
 
-export default Navbar;
+      <div className="flex items-center gap-4">
+        <span className="text-sm opacity-90">
+          {user?.fullName || user?.username || "Patient"}
+        </span>
+        <button
+          className="bg-red-600 hover:bg-red-700 text-white text-sm px-3 py-1 rounded"
+          onClick={logout}
+        >
+          Logout
+        </button>
+      </div>
+    </header>
+  );
+}

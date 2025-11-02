@@ -1,27 +1,29 @@
+// backend/server.js
+// Express init + routes
+
 import express from 'express';
 import dotenv from 'dotenv';
-import authRoutes from './routes/auth.js'
+import authRoutes from './routes/auth.js';
+import patientRoutes from './routes/patient.js';
+import appointmentRoutes from './routes/appointment.js';
 import { connectDB } from './config/db.js';
+import PatientRoutes from './routes/patient.js';
+import cors from "cors";
+
 dotenv.config();
 
-
 const PORT = process.env.PORT || 5000;
-
 const app = express();
 
-//This line tells our express server to autamically parse incoming json data in the doby of http requests
-app.use(express.json())
+app.use(cors());
 
-//This line registers out user related routes like regiester and login etc under api/users
-app.use("/api/users", authRoutes)
+app.use(express.json());
 
+// routes
+app.use('/api/users', authRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
-//this function just establishes the connection to the database.
 connectDB();
 
-app.listen(PORT, () => {  console.log(`Server started at port ${PORT}`); });
-
-
-
-
-
+app.listen(PORT, () => console.log(`Server running on ${PORT}`));
