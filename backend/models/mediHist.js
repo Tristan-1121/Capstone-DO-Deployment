@@ -1,9 +1,11 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-//medical history subdocument schema
 const mediHistSchema = new mongoose.Schema({
-    conditions: {type: String },
-    surgeries: { type: String },
-}, { _id: false });
+  conditions: [String],
+  surgeries:  [String],
+  familyHistory: String,
+  notes: String,
+});
 
 export default mediHistSchema;
+

@@ -1,43 +1,62 @@
-// backend/routes/patient.js
-// Patient profile routes
-
-import express from 'express';
-import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
+import express from "express";
+import { protect } from "../middleware/auth.js";
+import Patient from "../models/Patient.js";
 
 const router = express.Router();
 
-// GET user profile
-router.get('/me', protect, async (req, res) => {
+// GET the logged-in patient's data
+router.get("/me", protect, async (req, res) => {
   try {
-    const { password, ...safeUser } = req.user.toObject();
-    res.json(safeUser);
+    const email = req.user.email;
+    let patient = await Patient.findOne({ Email: email });
+
+    // Create an empty record if it doesn't exist
+    if (!patient) {
+      patient = await Patient.create({
+        Email: email,
+        Name: req.user.username,
+        Age: 0,
+        Weight: 0,
+        Height: 0,
+        Sex: "",
+        Phone: "",
+        Address: "",
+        City: "",
+        State: "",
+        Zip: "",
+        MedHist: [],
+        Prescriptions: [],
+        Allergies: [],
+      });
+    }
+
+    res.json(patient);
   } catch (err) {
-    console.error('GET /patients/me', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("❌ GET /api/patients/me error:", err);
+    res.status(500).json({ message: "Server error fetching patient data" });
   }
 });
 
-// UPDATE user profile
-router.put('/me', protect, async (req, res) => {
+// PUT update patient info
+router.put("/me", protect, async (req, res) => {
   try {
-    const ALLOWED = ['fullName', 'age', 'weight', 'healthHistory'];
-    const update = {};
+    const email = req.user.email;
+    const updates = req.body;
 
-    ALLOWED.forEach(key => {
-      if (key in req.body) update[key] = req.body[key];
-    });
+    const patient = await Patient.findOneAndUpdate(
+      { Email: email },
+      updates,
+      { new: true, upsert: true, runValidators: false }
+    );
 
-    const updated = await User.findByIdAndUpdate(req.user._id, update, {
-      new: true,
-      runValidators: true
-    }).select('-password');
-
-    res.json(updated);
+    res.json(patient);
   } catch (err) {
-    console.error('PUT /patients/me', err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("❌ PUT /api/patients/me error:", err);
+    res.status(500).json({ message: "Server error updating patient" });
   }
 });
 
 export default router;
+
+
+

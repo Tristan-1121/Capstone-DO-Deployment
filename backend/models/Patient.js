@@ -1,19 +1,48 @@
-import mongoose from 'mongoose';
-import mediHist from '/me/models/mediHist.js';
-import prescriptions from '/me/models/prescriptions.js';
-import allergies from '/me/models/allergies.js';
+import mongoose from "mongoose";
 
-const patientHealthSchema = new mongoose.Schema({
-    Email: { type: String , required: true },
-    Name: { type: String, required: true },
-    Age: { type: Number, required: true },
-    Weight: { type: Number, required: true },
-    Height: { type: Number, required: true },
-    Sex: { type: String, required: true },
-    MedHist: { type: mediHist, required: true },
-    Prescriptions: { type: prescriptions, required: true },
-    Allergies: { type: allergies, required: true },
+const allergySchema = new mongoose.Schema({
+  allergen: { type: String, required: true },
+  reaction: { type: String, required: true },
+  severity: {
+    type: String,
+    enum: ["Mild", "Moderate", "Severe"],
+    default: "Mild",
+  },
 });
 
-export default patientHealthSchema;
+const prescriptionSchema = new mongoose.Schema({
+  medicationName: { type: String, required: true },
+  dosage: { type: String, required: true },
+  frequency: { type: String, required: true },
+});
+
+const mediHistSchema = new mongoose.Schema({
+  conditions: [String],
+  surgeries: [String],
+  familyHistory: String,
+  notes: String,
+});
+
+const patientSchema = new mongoose.Schema({
+  Email: { type: String, required: true },
+  Name: { type: String, required: true },
+  Age: { type: Number },
+  Weight: { type: Number },
+  Height: { type: Number },
+  Sex: { type: String },
+  Phone: { type: String },
+  Address: { type: String },
+  City: { type: String },
+  State: { type: String },
+  Zip: { type: String },
+
+  MedHist: [mediHistSchema],
+  Prescriptions: [prescriptionSchema],
+  Allergies: [allergySchema],
+});
+
+export default mongoose.model("Patient", patientSchema);
+
+
+
 
