@@ -8,6 +8,7 @@ const items = [
   { to: "/visits", label: "Visits", icon: "📝" },
   { to: "/medication", label: "Medication", icon: "💊" },
   { to: "/about", label: "About", icon: "ℹ️" },
+  { to: "/patient-info", label: "Update Info", icon: "🩺" },
 ];
 
 export default function Sidebar({ collapsed }) {
