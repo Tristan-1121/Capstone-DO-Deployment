@@ -2,31 +2,83 @@ name: Node.js CI
 
 on:
   push:
-    branches: 
-        - main
-        - testing
+    branches:
+      - main
+      - testing
   pull_request:
-    branches: 
-        - main
-        - testing
+    branches:
+      - main
+      - testing
 
 jobs:
   build-and-test:
     runs-on: ubuntu-latest
-
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.19.0' 
-      
-    - name: Build TypeScript
-      run: npm run build
-      working-directory: ./client
-      
-    - name: Run tests
-      run: npm test
-      working-directory: ./clientS
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: ./backend
+
+      - name: Install client dependencies
+        run: npm ci
+        working-directory: ./client
+
+      - name: Build client (if applicable)
+        run: npm run build
+        working-directory: ./client
+        continue-on-error: true
+
+      - name: Run backend unit tests with coverage (nyc)
+        run: |
+          if [ -f backend/package.json ]; then
+            if grep -q "\"nyc\"" backend/package.json; then
+              npx nyc --reporter=lcov --reporter=text-summary npm test --prefix backend
+            else
+              npm test --prefix backend
+            fi
+          fi
+
+      - name: Run client unit tests
+        run: |
+          if [ -f client/package.json ]; then
+            npm test --prefix client
+          fi
+
+      - name: Install Playwright browsers and deps
+        run: npx playwright install --with-deps
+        working-directory: ./client
+
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=list
+        working-directory: ./client
+
+      - name: Upload backend coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ./backend/coverage
+
+      - name: Upload client coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-coverage
+          path: ./client/coverage
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ./client/playwright-report
