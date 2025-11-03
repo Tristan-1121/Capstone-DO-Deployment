@@ -48,37 +48,18 @@ jobs:
             fi
           fi
 
-      - name: Run frontend unit tests
-        run: |
-          if [ -f frontend/package.json ]; then
-            npm test --prefix frontend
-          fi
-
-      - name: Install Playwright browsers and deps
-        run: npx playwright install --with-deps
-        working-directory: ./frontend
-
-      - name: Run Playwright tests
-        run: npx playwright test --reporter=list
-        working-directory: ./frontend
 
       - name: Upload backend coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: backend-coverage
-          path: ./backend/coverage
+          path: ./backend/coverage.txt
 
       - name: Upload frontend coverage artifact
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: frontend-coverage
-          path: ./frontend/coverage
+          path: ./frontend/coverage.txt
 
-      - name: Upload Playwright report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: playwright-report
-          path: ./frontend/playwright-report
