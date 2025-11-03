@@ -1,26 +1,30 @@
-import express from "express";
-import dotenv from "dotenv";
-import cors from "cors";
-import connectDB from "./config/db.js";
+// backend/server.js
+import express from 'express';
+import dotenv from 'dotenv';
+import cors from 'cors';
 
-import authRoutes from "./routes/authRoutes.js";
-import appointmentRoutes from "./routes/appointmentRoutes.js";
-import patientRoutes from "./routes/patientRoutes.js"; // <- make sure this exists
+import authRoutes from './routes/auth.js';
+import patientRoutes from './routes/patient.js';
+import appointmentRoutes from './routes/appointment.js';
+import { connectDB } from './config/db.js'; 
 
 dotenv.config();
-connectDB();
 
 const app = express();
-app.use(cors());
+const PORT = process.env.PORT || 5000;
+
+// Middlewares
+app.use(cors({
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  credentials: true,
+}));
 app.use(express.json());
 
 // Routes
-app.use("/api/auth", authRoutes);
-app.use("/api/appointments", appointmentRoutes);
-app.use("/api/patient", patientRoutes); // patient info API
+app.use('/api/users', authRoutes);
+app.use('/api/patients', patientRoutes);
+app.use('/api/appointments', appointmentRoutes);
 
-// Test route
-app.get("/", (req, res) => res.send("UWF CareConnect Server running"));
-
-const PORT = process.env.PORT || 5000;
+// DB + start
+connectDB();
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
