@@ -1,82 +1,95 @@
-// Appointment routes (minimal)
-
-import express from 'express';
-import Appointment from '../models/appointments.js';
-import { protect } from '../middleware/auth.js';
+import express from "express";
+import mongoose from "mongoose";
+import { protect } from "../middleware/auth.js";
+import Appointment from "../models/appointments.js";
 
 const router = express.Router();
 
-// POST create appointment
-router.post('/', protect, async (req, res) => {
+// GET /api/appointments/me?range=upcoming|past
+router.get("/me", protect, async (req, res) => {
   try {
-    const { practitionerId, start, end, reason } = req.body;
-    if (!practitionerId || !start || !end || !reason)
-      return res.status(400).json({ message: 'Missing fields' });
+    const range = (req.query.range || "upcoming").toLowerCase();
+    const now = new Date();
 
-    if (new Date(start) >= new Date(end))
-      return res.status(400).json({ message: 'Invalid time range' });
+    const query =
+      range === "past"
+        ? { patientId: req.user._id, endAt: { $lt: now } }
+        : { patientId: req.user._id, startAt: { $gte: now } };
+
+    const sort = range === "past" ? { startAt: -1 } : { startAt: 1 };
+
+    const items = await Appointment.find(query)
+      .select("-__v")
+      .sort(sort);
+
+    res.json(items);
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Server error" });
+  }
+});
+
+// GET /api/appointments/:id
+router.get("/:id", protect, async (req, res) => {
+  try {
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    const appt = await Appointment.findOne({
+      _id: req.params.id,
+      patientId: req.user._id,
+    });
+    if (!appt) return res.status(404).json({ message: "Appointment not found" });
+    res.json(appt);
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Server error" });
+  }
+});
+
+// POST /api/appointments
+router.post("/", protect, async (req, res) => {
+  try {
+    const { date, timeStart, timeEnd, type, reason } = req.body;
+    if (!date || !timeStart || !timeEnd || !type || !reason) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    const startAt = new Date(`${date}T${timeStart}:00`);
+    const endAt = new Date(`${date}T${timeEnd}:00`);
+    if (!(startAt < endAt)) {
+      return res.status(400).json({ message: "timeEnd must be after timeStart" });
+    }
 
     const appt = await Appointment.create({
       patientId: req.user._id,
-      practitionerId,
-      start,
-      end,
-      reason
+      date,
+      timeStart,
+      timeEnd,
+      type,
+      reason,
     });
 
     res.status(201).json(appt);
-  } catch (err) {
-    console.error('POST /appointments', err);
-    res.status(500).json({ message: 'Create error' });
+  } catch (e) {
+    res.status(400).json({ message: e.message || "Could not create appointment" });
   }
 });
 
-// GET user appointments (?range=past|upcoming)
-router.get('/me', protect, async (req, res) => {
+// DELETE /api/appointments/:id
+router.delete("/:id", protect, async (req, res) => {
   try {
-    const { range } = req.query;
-    const now = new Date();
-    const filter = { patientId: req.user._id };
-    filter.start = range === 'past' ? { $lt: now } : { $gte: now };
-
-    const list = await Appointment.find(filter).sort({ start: 1 });
-    res.json(list);
-  } catch (err) {
-    console.error('GET /appointments/me', err);
-    res.status(500).json({ message: 'Fetch error' });
-  }
-});
-
-// GET single appointment
-router.get('/:id', protect, async (req, res) => {
-  try {
-    const appt = await Appointment.findById(req.params.id);
-    if (!appt) return res.status(404).json({ message: 'Not found' });
-
-    if (appt.patientId.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: 'Forbidden' });
-
-    res.json(appt);
-  } catch (err) {
-    console.error('GET /appointments/:id', err);
-    res.status(500).json({ message: 'Fetch error' });
-  }
-});
-
-// DELETE appointment
-router.delete('/:id', protect, async (req, res) => {
-  try {
-    const appt = await Appointment.findById(req.params.id);
-    if (!appt) return res.status(404).json({ message: 'Not found' });
-
-    if (appt.patientId.toString() !== req.user._id.toString())
-      return res.status(403).json({ message: 'Forbidden' });
+    if (!mongoose.isValidObjectId(req.params.id)) {
+      return res.status(404).json({ message: "Appointment not found" });
+    }
+    const appt = await Appointment.findOne({
+      _id: req.params.id,
+      patientId: req.user._id,
+    });
+    if (!appt) return res.status(404).json({ message: "Appointment not found" });
 
     await appt.deleteOne();
-    res.status(204).send();
-  } catch (err) {
-    console.error('DELETE /appointments/:id', err);
-    res.status(500).json({ message: 'Delete error' });
+    res.json({ message: "Deleted" });
+  } catch (e) {
+    res.status(500).json({ message: e.message || "Could not delete appointment" });
   }
 });
 

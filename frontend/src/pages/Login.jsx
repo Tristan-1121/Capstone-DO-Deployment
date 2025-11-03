@@ -1,89 +1,93 @@
-import axios from "axios";
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { useAuth } from "../context/AuthContext"; // read/write token & user for the whole app
+import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import Navbar from "../components/Navbar";
 
 export default function Login() {
-  // read global setters from context so Navbar/guards see changes
-  const { setToken, setUser } = useAuth();
-
-  // local form state
-  const [formData, setFormData] = useState({ email: "", password: "" });
-  const [error, setError] = useState("");
+  const { login } = useAuth();
   const navigate = useNavigate();
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  // keep inputs controlled
-  const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
-  };
-
-  // submit to API, persist token, hydrate global auth state, then go to /profile
-  const handleSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    setError("");
+    if (!form.email || !form.password) {
+      setError("Please fill all fields");
+      return;
+    }
     try {
-      const res = await axios.post("/api/users/login", formData);
-
-      // persist token so refresh keeps you logged in
-      localStorage.setItem("token", res.data.token);
-
-      // update global auth for the app shell (Navbar, guards, API helpers)
-      setToken(res.data.token);
-      setUser({
-        id: res.data.id,
-        username: res.data.username,
-        email: res.data.email,
-        // include fullName/role if your backend returns them
-        fullName: res.data.fullName,
-        role: res.data.role,
-      });
-
-      // land on the patient homepage (Profile)
+      setLoading(true);
+      await login(form.email, form.password);
       navigate("/profile");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      const msg = err?.response?.data?.message || err.message || "Login failed";
+      setError(msg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white p-8 rounded-lg shadow-lg w-full max-w-md border border-gray-200">
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-800">Login</h2>
+    <>
+      <Navbar showSidebarToggle={false} />
+      <div className="min-h-[calc(100vh-56px)] flex flex-col items-center justify-center bg-gray-50">
+        <h1 className="text-2xl font-semibold text-[#003E7E] mb-1">
+          Welcome to UWF CareConnect
+        </h1>
+        <p className="text-gray-500 mb-8">Secure access to your healthcare information</p>
 
-        {error && <p className="text-red-500 mb-4 text-sm">{error}</p>}
+        <div className="bg-white shadow-md p-8 rounded-lg w-full max-w-md">
+          <h2 className="text-lg font-medium text-center mb-6">Login</h2>
 
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label className="block text-gray-600 text-sm font-medium mb-1">Email</label>
-            <input
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 outline-none focus:border-blue-400"
-              type="email"
-              name="email"
-              value={formData.email}
-              onChange={handleChange}
-              placeholder="Enter your email"
-              autoComplete="off"
-              required
-            />
-          </div>
+          {error && <p className="text-red-600 text-sm mb-3">{error}</p>}
 
-          <div className="mb-6">
-            <label className="block text-gray-600 text-sm font-medium mb-1">Password</label>
-            <input
-              className="w-full p-3 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-200 outline-none focus:border-blue-400"
-              type="password"
-              name="password"
-              value={formData.password}
-              onChange={handleChange}
-              placeholder="Enter your password"
-              required
-            />
-          </div>
+          <form onSubmit={submit} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium">Student Email</label>
+              <input
+                className="mt-1 w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-[#003E7E]"
+                type="email"
+                placeholder="tc12@students.uwf.edu"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">Use your students.uwf.edu email.</p>
+            </div>
 
-          <button className="w-full bg-blue-500 text-white p-3 rounded-md hover:bg-blue-600 font-medium">
-            Login
-          </button>
-        </form>
+            <div>
+              <label className="text-sm font-medium">Password</label>
+              <input
+                className="mt-1 w-full border rounded-md px-3 py-2 focus:ring-2 focus:ring-[#003E7E]"
+                type="password"
+                placeholder="Enter your password"
+                value={form.password}
+                onChange={(e) => setForm({ ...form, password: e.target.value })}
+                required
+              />
+            </div>
+
+            <button
+              className="w-full bg-[#003E7E] text-white py-2 rounded-md hover:bg-[#024a95] transition"
+              type="submit"
+              disabled={loading}
+            >
+              {loading ? "Signing in…" : "Login"}
+            </button>
+          </form>
+
+          <p className="text-center text-sm text-gray-600 mt-4">
+            Don’t have an account?{" "}
+            <Link className="text-[#003E7E] font-medium" to="/register">
+              Register here
+            </Link>
+          </p>
+        </div>
+
+        <p className="text-xs mt-4 text-gray-400">Secure & confidential | University of West Florida</p>
       </div>
-    </div>
+    </>
   );
 }

@@ -13,9 +13,9 @@ import Appointments from "./pages/Appointments.jsx";
 import Visits from "./pages/Visits.jsx";
 import Medication from "./pages/Medication.jsx";
 import About from "./pages/About.jsx";
-import { PatientProvider } from "./context/PatientContext.jsx";
 
-// Patient Info page
+// Patient info context + page (from your HEAD)
+import { PatientProvider } from "./context/PatientContext.jsx";
 import PatientInfo from "./pages/patient-info/PatientInfo.jsx";
 
 // Fallback
@@ -27,29 +27,25 @@ export default function App() {
       <PatientProvider>
         <BrowserRouter>
           <Routes>
-            {/* ===== Public Routes ===== */}
+            {/* Public */}
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* ===== Protected Routes (require login) ===== */}
+            {/* Protected shell */}
             <Route element={<RequireAuth />}>
               <Route element={<Layout />}>
-                {/* Default redirect */}
                 <Route path="/" element={<Navigate to="/profile" replace />} />
-
-                {/* Standard routes */}
                 <Route path="/profile" element={<Profile />} />
                 <Route path="/appointments" element={<Appointments />} />
                 <Route path="/visits" element={<Visits />} />
                 <Route path="/medication" element={<Medication />} />
                 <Route path="/about" element={<About />} />
-
-                {/* 🆕 Patient Info route */}
+                {/* New route from HEAD */}
                 <Route path="/patient-info" element={<PatientInfo />} />
               </Route>
             </Route>
 
-            {/* ===== 404 Fallback ===== */}
+            {/* 404 */}
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
@@ -57,4 +53,3 @@ export default function App() {
     </AuthProvider>
   );
 }
-

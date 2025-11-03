@@ -1,3 +1,11 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Subtle, modern surface for auth pages */
+.bg-uwf-surface {
+  background:
+    radial-gradient(80vw 60vh at 10% -10%, rgba(0, 62, 126, 0.06), transparent 60%),
+    radial-gradient(60vw 50vh at 110% 10%, rgba(0, 62, 126, 0.05), transparent 60%),
+    linear-gradient(#f7f9fc, #f5f7fb);
+}
