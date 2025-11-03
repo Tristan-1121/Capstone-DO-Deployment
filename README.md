@@ -14,3 +14,5 @@ Enter "npm run dev"
 This should bring the website up and allow you to use it.
 
 In case it doesn't work, please try npm i mongoDb and/or npm i cors
+
+YouTube Link: https://youtu.be/8E_AbV-Amx0
