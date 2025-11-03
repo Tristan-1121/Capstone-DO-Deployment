@@ -18,11 +18,11 @@ export default function App() {
     <AuthProvider>
       <BrowserRouter>
         <Routes>
-          {/* public */}
+          {/* Public */}
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* protected shell */}
+          {/* Protected shell */}
           <Route element={<RequireAuth />}>
             <Route element={<Layout />}>
               <Route path="/" element={<Navigate to="/profile" replace />} />

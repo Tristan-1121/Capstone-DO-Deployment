@@ -1,53 +1,27 @@
-import React from "react";
-
-// Compact, reusable card for a single appointment item
 export default function AppointmentCard({ appt, onDelete }) {
-  const start = new Date(appt.start);
-  const end = new Date(appt.end);
+  const [y, mo, d] = appt.date.split("-").map(Number);
+  const [h1, m1] = appt.timeStart.split(":").map(Number);
+  const [h2, m2] = appt.timeEnd.split(":").map(Number);
 
-  // small status pill
-  const Status = () => (
-    <span
-      className={`inline-block text-xs px-2 py-0.5 rounded-full ${
-        appt.status === "completed"
-          ? "bg-emerald-100 text-emerald-700"
-          : appt.status === "canceled"
-          ? "bg-red-100 text-red-700"
-          : "bg-blue-100 text-blue-700"
-      }`}
-    >
-      {appt.status || "scheduled"}
-    </span>
-  );
+  const start = new Date(y, mo - 1, d, h1, m1);
+  const end = new Date(y, mo - 1, d, h2, m2);
 
   return (
     <li className="border rounded p-3 bg-white">
-      <div className="flex items-start justify-between gap-2">
-        <div>
-          <div className="font-medium">
-            {start.toLocaleString()} &rarr; {end.toLocaleString()}
-          </div>
-          <div className="text-sm text-gray-600">
-            Reason: {appt.reason}
-          </div>
-          {appt.practitionerName && (
-            <div className="text-sm text-gray-600">
-              Practitioner: {appt.practitionerName}
-            </div>
-          )}
-        </div>
-        <Status />
+      <div className="font-medium">
+        {start.toLocaleDateString()} • {start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+        {" – "}
+        {end.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
       </div>
+      {appt.type && <div className="text-sm text-gray-700 mt-1">Type: {appt.type}</div>}
+      <div className="text-sm text-gray-600">Reason: {appt.reason}</div>
+      <div className="text-sm mt-1">Status: <span className="capitalize">{appt.status || "scheduled"}</span></div>
 
-      <div className="mt-3 flex gap-3">
-        <button
-          className="text-sm text-red-600 hover:underline"
-          onClick={() => onDelete?.(appt._id)}
-        >
+      {onDelete && (
+        <button className="text-sm text-red-600 hover:underline mt-2" onClick={() => onDelete(appt._id)}>
           Delete
         </button>
-        {/* Add “Reschedule” or “View details” later if needed */}
-      </div>
+      )}
     </li>
   );
 }
