@@ -1,43 +1,84 @@
-import React from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import { Link } from "react-router-dom";
 
-const Navbar = ({ user, setUser }) => {
-  const navigate = useNavigate();
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    setUser(null);
-    navigate("/");
-  };
+export default function Navbar({
+  showSidebarToggle = true,
+  onToggleSidebar = () => {},
+  sidebarCollapsed = false,
+}) {
+  const { user } = useAuth();
+  const isPublic = !showSidebarToggle;
+  const initials =
+    user?.fullName?.split(" ").map(s => s[0]).join("").slice(0,2).toUpperCase() ||
+    user?.username?.slice(0,2)?.toUpperCase();
 
   return (
-    <nav className="bg-gray-800 p-4">
-      <div className="container mx-auto flex justify-between items-center">
-        <Link to="/" className="text-white text-lg font-bold">
-          UWF ConnectCare
-        </Link>
-        <div>
-          {user ? (
-            <button
-              onClick={handleLogout}
-              className="text-white bg-red-500 px-4 py-2 rounded hover:bg-red-600"
+    <header className="z-20 h-14 bg-[#003E7E] text-white flex items-center justify-between px-4">
+      <div className="flex items-center gap-3">
+        {/* Hamburger only on protected pages */}
+        {isPublic ? (
+          <span className="w-6 inline-block" aria-hidden="true" />
+        ) : (
+          <button
+            type="button"
+            onClick={onToggleSidebar}
+            className="rounded px-2 py-1 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-white/40 transition-transform"
+            aria-label="Toggle sidebar"
+            aria-controls="app-sidebar"
+            aria-expanded={!sidebarCollapsed}
+            title="Toggle sidebar"
+          >
+            <span
+              className={`inline-block transition-transform duration-200 ${
+                sidebarCollapsed ? "rotate-90" : "rotate-0"
+              }`}
             >
-              Logout
-            </button>
-          ) : (
-            <>
-              <Link className="text-white mx-2 hover:underline" to="/login">
-                Login
-              </Link>
-              <Link className="text-white mx-2 hover:underline" to="/register">
-                Register
-              </Link>
-            </>
-          )}
+              ☰
+            </span>
+          </button>
+        )}
+
+        {/* Health logo + Brand */}
+        <div className="flex items-center gap-2 font-semibold">
+          <span>UWF CareConnect</span>
         </div>
       </div>
-    </nav>
-  );
-};
 
-export default Navbar;
+      {/* Right side */}
+      <div className="flex items-center gap-3">
+        {isPublic ? (
+          <div className="flex items-center gap-2">
+            <Link
+              to="/login"
+              className="text-sm px-3 py-1 rounded border border-white/30 hover:bg-white/10"
+            >
+              Login
+            </Link>
+            <Link
+              to="/register"
+              className="text-sm px-3 py-1 rounded bg-white text-[#003E7E] hover:bg-white/90"
+            >
+              Register
+            </Link>
+          </div>
+        ) : (
+          <div className="flex items-center gap-2">
+            {/* Avatar: image if provided, else initials */}
+            {user?.avatarUrl ? (
+              <img
+                src={user.avatarUrl}
+                alt="User avatar"
+                className="w-8 h-8 rounded-full object-cover ring-2 ring-white/40"
+              />
+            ) : (
+              <div className="w-8 h-8 rounded-full bg-white/15 grid place-items-center text-sm font-medium ring-2 ring-white/20">
+                {initials || "👤"}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    </header>
+  );
+}

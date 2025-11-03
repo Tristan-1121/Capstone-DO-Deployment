@@ -1,40 +1,71 @@
 import mongoose from 'mongoose';
-import bcrypt from 'bcryptjs' 
+import bcrypt from 'bcryptjs';
 
-const userSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
-}, { timestamps: true });
+// Strong password policy:
+// ≥8 chars, at least 1 uppercase, 1 lowercase, 1 digit, 1 special
+const PASSWORD_RE = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/;
+  
 
+const userSchema = new mongoose.Schema(
+  {
+    username: { type: String, required: true, unique: true, trim: true, lowercase: true },
+    email:    { type: String, required: true, unique: true, trim: true, lowercase: true },
 
-//Before saing a user data to the DB, automatically hash the password:
-userSchema.pre("save", async function(next){
+    // Enforce password rules here so all creations/updates are validated
+    password: {
+      type: String,
+      required: true,
+      validate: {
+        validator: (val) => PASSWORD_RE.test(val),
+        message:
+          'Password must be at least 8 characters and include uppercase, lowercase, number, and special character.',
+      },
+    },
 
-    //So if the password wasn't changed, we skip the hashing
-    if(!this.isModified("password")) return next();
+    // New structured name fields
+    firstName: { type: String, trim: true },
+    lastName:  { type: String, trim: true },
+    fullName:  { type: String, trim: true },
 
-    //Generate a salt (random string to strengthen the hash)
-     const salt = await bcrypt.genSalt(10);
+    // patient | practitioner | admin
+    role: { type: String, enum: ['patient', 'practitioner', 'admin'], default: 'patient' },
 
-     //Hash the password with the salt
-     this.password = await bcrypt.hash(this.password, salt)
+    // Array of medical history tags
+    healthHistory: [{ type: String, trim: true }],
+  },
+  { timestamps: true }
+);
 
-     //Then we move to the next middleware
-     next();
-})
+// Normalize + defaults
+userSchema.pre('validate', function (next) {
+  if (this.email) this.email = this.email.toLowerCase().trim();
+  if (this.username) this.username = this.username.toLowerCase().trim();
 
-//Let add our custom method to compare the entered password with the hashed password to see if they match
+  if ((this.firstName || this.lastName) && !this.fullName) {
+    const fn = (this.firstName || '').trim();
+    const ln = (this.lastName || '').trim();
+    this.fullName = [fn, ln].filter(Boolean).join(' ');
+  }
+
+  // Default username to local part of email
+  if (!this.username && this.email) {
+    this.username = this.email.split('@')[0];
+  }
+
+  next();
+});
+
+// Hash password before storing (runs after validation passes)
+userSchema.pre('save', async function (next) {
+  if (!this.isModified('password')) return next();
+  const salt = await bcrypt.genSalt(10);
+  this.password = await bcrypt.hash(this.password, salt);
+  next();
+});
+
+// Compare entered password to hashed password
 userSchema.methods.matchPassword = async function (enteredPassword) {
-     return await bcrypt.compare(enteredPassword, this.password);
+  return await bcrypt.compare(enteredPassword, this.password);
 };
 
-
-
-/*The reason why I proposed to hash the passwords here is instead in the routes,
- is because this ensure they are ashed consistently and securely no matter
-where or how user is saved to avoid repetions and potential erors*/
-
-const User = mongoose.model("User", userSchema);
-
-export default User;
+export default mongoose.model('User', userSchema);
