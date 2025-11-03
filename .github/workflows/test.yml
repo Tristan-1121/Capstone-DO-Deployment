@@ -1,1 +1,84 @@
-test
+name: Node.js CI
+
+on:
+  push:
+    branches:
+      - main
+      - testing
+  pull_request:
+    branches:
+      - main
+      - testing
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.0'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install backend dependencies
+        run: npm ci
+        working-directory: ./backend
+
+      - name: Install frontend dependencies
+        run: npm ci
+        working-directory: ./frontend
+
+      - name: Build frontend (if applicable)
+        run: npm run build
+        working-directory: ./frontend
+        continue-on-error: true
+
+      - name: Run backend unit tests with coverage (nyc)
+        run: |
+          if [ -f backend/package.json ]; then
+            if grep -q "\"nyc\"" backend/package.json; then
+              npx nyc --reporter=lcov --reporter=text-summary npm test --prefix backend
+            else
+              npm test --prefix backend
+            fi
+          fi
+
+      - name: Run frontend unit tests
+        run: |
+          if [ -f frontend/package.json ]; then
+            npm test --prefix frontend
+          fi
+
+      - name: Install Playwright browsers and deps
+        run: npx playwright install --with-deps
+        working-directory: ./frontend
+
+      - name: Run Playwright tests
+        run: npx playwright test --reporter=list
+        working-directory: ./frontend
+
+      - name: Upload backend coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-coverage
+          path: ./backend/coverage
+
+      - name: Upload frontend coverage artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-coverage
+          path: ./frontend/coverage
+
+      - name: Upload Playwright report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: ./frontend/playwright-report

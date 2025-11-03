@@ -5,7 +5,12 @@
   "main": "index.js",
   "scripts": {
     "server": "nodemon",
-    "start": "node backend/server.js"
+    "start": "node backend/server.js",
+    "playwright:install": "playwright install --with-deps",
+    "test:e2e": "playwright test",
+    "test:e2e:head": "playwright test --headed --slow-mo=500",
+    "playwright:show-report": "playwright show-report",
+    "test": "jest"
   },
   "type": "module",
   "keywords": [],
