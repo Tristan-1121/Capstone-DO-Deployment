@@ -1,3 +1,5 @@
+//frontend/src/api/appointments.js
+
 import api from "./http";
 
 // GET my appointments (upcoming | past)

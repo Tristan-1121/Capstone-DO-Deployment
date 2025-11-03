@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { getMyAppointments, createAppointment, deleteAppointment } from "../api/appointments";
+import { getMyAppointments, deleteAppointment } from "../api/appointments";
 import AppointmentForm from "../components/appointments/AppointmentForm";
 import AppointmentList from "../components/appointments/AppointmentList";
 
@@ -11,27 +11,26 @@ export default function Appointments() {
 
   const load = () =>
     getMyAppointments(tab)
-      .then(setList)
-      .catch(() => setError("Failed to load appointments"));
+      .then((res) => {
+        const items = Array.isArray(res) ? res : res?.items ?? [];
+        setList(items);
+        setError("");
+      })
+      .catch((err) => {
+        const msg = err?.response?.data?.message || "Failed to load appointments";
+        setError(msg);
+      });
 
-  useEffect(() => { load(); /* eslint-disable-next-line */ }, [tab]);
+  useEffect(() => { load(); }, [tab]);
 
-  const create = async (payload) => {
-    try {
-      await createAppointment(payload);
-      setOpen(false);
-      load();
-    } catch {
-      alert("Failed to create appointment");
-    }
-  };
+  const handleCreated = async () => load();
 
   const remove = async (id) => {
     try {
       await deleteAppointment(id);
       load();
-    } catch {
-      alert("Failed to delete");
+    } catch (err) {
+      alert(err?.response?.data?.message || "Failed to delete");
     }
   };
 
@@ -40,22 +39,10 @@ export default function Appointments() {
       <h1 className="text-xl font-semibold">Appointment Scheduling</h1>
 
       <div className="flex gap-2">
-        <button
-          className={`px-3 py-1 rounded border ${tab === "upcoming" ? "bg-gray-200" : ""}`}
-          onClick={() => setTab("upcoming")}
-        >
-          Upcoming
-        </button>
-        <button
-          className={`px-3 py-1 rounded border ${tab === "past" ? "bg-gray-200" : ""}`}
-          onClick={() => setTab("past")}
-        >
-          Past
-        </button>
+        <button className={`px-3 py-1 rounded border ${tab === "upcoming" ? "bg-gray-200" : ""}`} onClick={() => setTab("upcoming")}>Upcoming</button>
+        <button className={`px-3 py-1 rounded border ${tab === "past" ? "bg-gray-200" : ""}`} onClick={() => setTab("past")}>Past</button>
         <div className="flex-1" />
-        <button className="px-3 py-1 rounded bg-emerald-600 text-white" onClick={() => setOpen(true)}>
-          Schedule New Appointment
-        </button>
+        <button className="px-3 py-1 rounded bg-emerald-600 text-white" onClick={() => setOpen(true)}>Schedule New Appointment</button>
       </div>
 
       {error && <div className="text-red-600">{error}</div>}
@@ -64,11 +51,7 @@ export default function Appointments() {
         <AppointmentList items={list} onDelete={remove} />
       </div>
 
-      {open && (
-        <div className="fixed inset-0 bg-black/30 grid place-items-center">
-          <AppointmentForm onSubmit={create} onCancel={() => setOpen(false)} />
-        </div>
-      )}
+      <AppointmentForm open={open} onClose={() => setOpen(false)} onCreated={handleCreated} />
     </div>
   );
 }
