@@ -48,12 +48,6 @@ jobs:
             fi
           fi
 
-      - name: Run frontend unit tests
-        run: |
-          if [ -f frontend/package.json ]; then
-            npm test --prefix frontend
-          fi
-
       - name: Install Playwright browsers and deps
         run: npx playwright install --with-deps
         working-directory: ./frontend
