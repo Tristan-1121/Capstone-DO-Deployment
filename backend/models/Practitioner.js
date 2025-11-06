@@ -1,6 +1,6 @@
 //Mongoose schema and model for Practitioner
-const mongoose = require('mongoose');
-const bcrypt = require('bcryptjs');
+import mongoose from 'mongoose';
+import bcrypt from 'bcryptjs';
 
 //schema definition
 const practitionerSchema = new mongoose.Schema({
