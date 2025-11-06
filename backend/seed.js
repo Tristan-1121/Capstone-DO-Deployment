@@ -29,6 +29,9 @@ const seedPractitioners = async () => {
             const salt = await bcrypt.genSalt(10);
             practitioner.Password = await bcrypt.hash(practitioner.Password, salt);
         }
+        //delete existing practitioners to avoid duplicates
+        await Practitioner.deleteMany({});
+        // Insert practitioners into the database
         await Practitioner.insertMany(practitioners);
         console.log("Practitioners seeded successfully");
     } catch (error) {
