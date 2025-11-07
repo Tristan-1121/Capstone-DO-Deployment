@@ -4,17 +4,17 @@ import Patient from "../models/Patient.js";
 
 const router = express.Router();
 
-// GET the logged-in patient's data
+// 🧭 GET /api/patients/me — get current user's patient record
 router.get("/me", protect, async (req, res) => {
   try {
-    const email = req.user.email;
-    let patient = await Patient.findOne({ Email: email });
+    let patient = await Patient.findOne({ user: req.user._id });
 
-    // Create an empty record if it doesn't exist
     if (!patient) {
+      // auto-create a blank record for new users
       patient = await Patient.create({
-        Email: email,
-        Name: req.user.username,
+        user: req.user._id,
+        Email: req.user.email,
+        Name: req.user.username || req.user.fullName || "Unnamed Patient",
         Age: 0,
         Weight: 0,
         Height: 0,
@@ -28,25 +28,25 @@ router.get("/me", protect, async (req, res) => {
         Prescriptions: [],
         Allergies: [],
       });
+      console.log(`🆕 Created patient record for ${req.user.email}`);
     }
 
-    res.json(patient);
+    res.status(200).json(patient);
   } catch (err) {
     console.error("❌ GET /api/patients/me error:", err);
     res.status(500).json({ message: "Server error fetching patient data" });
   }
 });
 
-// PUT update patient info
+// 🧭 PUT /api/patients/me — update patient record for logged-in user
 router.put("/me", protect, async (req, res) => {
   try {
-    const email = req.user.email;
     const updates = req.body;
 
     const patient = await Patient.findOneAndUpdate(
-      { Email: email },
+      { user: req.user._id },
       updates,
-      { new: true, upsert: true, runValidators: false }
+      { new: true, upsert: true, runValidators: true }
     );
 
     res.json(patient);
@@ -57,6 +57,9 @@ router.put("/me", protect, async (req, res) => {
 });
 
 export default router;
+
+
+
 
 
 
