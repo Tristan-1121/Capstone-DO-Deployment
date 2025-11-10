@@ -1,42 +1,53 @@
 //seed file for practitioner role
-import Practitioner from './models/Practitioner.js';
-import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
+import User from './models/User.js';
+import practitioner from './models/Practitioner.js';
 
 
-const seedPractitioners = async () => {
-    try {
-        const practitioners = [
-            {
-                Email: "johndoe@example.com",
-                Name: "John Doe",
-                Password: "password123",
-               
-            },
-            {
-                Email: "janesmith@example.com",
-                Name: "Jane Smith",
-                Password: "password1234",
-            },
-            {
-                Email: "alicejohnson@example.com",
-                Name: "Alice Johnson",
-                Password: "password12345",
-            }
-        ];
-        // Hash passwords before inserting
-        for (let practitioner of practitioners) {
-            const salt = await bcrypt.genSalt(10);
-            practitioner.Password = await bcrypt.hash(practitioner.Password, salt);
-        }
-        //delete existing practitioners to avoid duplicates
-        await Practitioner.deleteMany({});
-        // Insert practitioners into the database
-        await Practitioner.insertMany(practitioners);
-        console.log("Practitioners seeded successfully");
-    } catch (error) {
-        console.error("Error seeding practitioners:", error);
+export const seedPractitioners = async () => {
+  try {
+
+    const practitioners = [
+      {
+        firstName: 'John',
+        lastName: 'Doe',
+        email: 'jd12@students.uwf.edu',
+        password: 'Password123!',
+        role: 'practitioner',
+      },
+      {
+        firstName: 'Jane',
+        lastName: 'Smith',
+        email: 'js34@students.uwf.edu',
+        password: 'Password1234!',
+        role: 'practitioner',
+      },
+      {
+        firstName: 'Alice',
+        lastName: 'Johnson',
+        email: 'aj56@students.uwf.edu',
+        password: 'Password12345!',
+        role: 'practitioner',
+      },
+    ];
+
+
+    // Remove existing practitioner users (avoid duplicates while dev’ing)
+    await User.deleteMany({ role: 'practitioner' });
+
+    // Remove existing practitioners from the Practitioner model
+    await practitioner.deleteMany({});
+    // Create each practitioner so pre('save') middleware hashes passwords
+    for (const data of practitioners) {
+      const user = new User(data); 
+      await user.save()
+      const practitionerInstance = new practitioner(data);
+      practitionerInstance.password = await bcrypt.hash(data.password, 10);
+      await practitionerInstance.save();
     }
-};
 
-export { seedPractitioners };
+    console.log('Practitioner users seeded successfully');
+  } catch (error) {
+    console.error('Error seeding practitioners:', error);
+  }
+};

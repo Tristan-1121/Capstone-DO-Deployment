@@ -25,7 +25,7 @@ const mediHistSchema = new mongoose.Schema({
 
 const patientSchema = new mongoose.Schema({
   Email: { type: String, required: true },
-  Name: { type: String, required: true },
+    Name: { type: String, required: true },
   Age: { type: Number },
   Weight: { type: Number },
   Height: { type: Number },

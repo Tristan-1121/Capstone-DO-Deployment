@@ -1,7 +1,7 @@
 //routes for practitioner model
 import express from "express";
 import { protect } from "../middleware/auth.js";
-import Appointment from "../models/Practitioner.js";
+import Appointment from "../models/Appointment.js";
 
 const router = express.Router();
 
@@ -13,6 +13,35 @@ router.get("/appointments", protect, async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: "Error fetching appointments", error });
     }
+});
+
+//login practitioner
+router.post('/login', async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    
+    if (!email || !password) {
+      return res.status(400).json({ message: 'Please fill all fields' });
+    }
+
+    const Pract = await Practitioner.findOne({ email: String(email).toLowerCase().trim() });
+
+    if (!Pract || !(await Pract.matchPassword(password))) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = generateToken(Pract._id);
+    return res.status(200).json({
+      id: Pract._id,
+      username: Pract.username,
+      email: Pract.email,
+      fullName: Pract.fullName,
+      role: Pract.role,
+      token,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error logging in", error });
+  }
 });
 
 //get all appointments for a single patient
