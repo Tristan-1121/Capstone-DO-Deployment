@@ -7,15 +7,27 @@ const router = express.Router();
 // POST create a new callback request
 router.post("/", protect, async (req, res) => {
   try {
-    const { Phone, Reason } = req.body;
-    if (!Phone || !Reason) {
-      return res.status(400).json({ message: "Phone and Reason are required" });
+    const { Phone, Email, Reason } = req.body;
+    // require Reason and at least one contact method (phone OR email)
+    if ((!Phone && !Email) || !Reason) {
+      return res.status(400).json({ message: "Phone or Email, and Reason are required" });
     }
 
     const patientId = req.user.id;
-    const newCallBack = await CallBack.create({ patientId, Phone, Reason });
+    const newCallBack = await CallBack.create({
+      patientId,
+      Phone: Phone || null,
+      Email: Email || null,
+      Reason,
+    });
 
-    res.status(201).json(newCallBack);
+    // prefer phone when available, otherwise fall back to email
+    const contactUsed = Phone ? "phone" : "email";
+
+    // include which contact method will be used in the response (doesn't change stored doc)
+    const payload = newCallBack.toObject ? { ...newCallBack.toObject(), contactUsed } : { ...newCallBack, contactUsed };
+
+    res.status(201).json(payload);
   } catch (err) {
     console.error("❌ POST /api/callbacks error:", err);
     res.status(500).json({ message: "Server error creating callback request" });
@@ -36,8 +48,5 @@ router.delete("/:id", protect, async (req, res) => {
     res.status(500).json({ message: "Server error deleting callback request" });
   }
 });
-
-
-
 
 export default router;
