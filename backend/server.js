@@ -8,6 +8,8 @@ import patientRoutes from './routes/patient.js';
 import appointmentRoutes from './routes/appointment.js';
 import callBackRoutes from './routes/callBack.js';
 import { connectDB } from './config/db.js'; 
+import { mongoAdminConnection } from './config/db.js';
+import { seedPractitioners } from './seed.js';
 
 dotenv.config();
 
@@ -30,3 +32,6 @@ app.use('/api/callbacks', callBackRoutes);
 // DB + start
 connectDB();
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+
+//connect to DB from admin account and seed practitioners
+seedPractitioners();
