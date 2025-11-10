@@ -49,4 +49,21 @@ router.delete("/:id", protect, async (req, res) => {
   }
 });
 
+//Update callback status by ID
+router.put("/:id/status", protect, async (req, res) => {
+  try {
+    const callbackId = req.params.id;
+    const { Status } = req.body;
+
+    const updatedCallBack = await CallBack.findByIdAndUpdate(callbackId, { Status }, { new: true });
+    if (!updatedCallBack) {
+      return res.status(404).json({ message: "Callback request not found" });
+    }
+    res.status(200).json(updatedCallBack);
+  } catch (err) {
+    console.error("❌ PUT /api/callbacks/:id/status error:", err);
+    res.status(500).json({ message: "Server error updating callback status" });
+  }
+});
+
 export default router;
