@@ -7,6 +7,8 @@ import authRoutes from './routes/auth.js';
 import patientRoutes from './routes/patient.js';
 import appointmentRoutes from './routes/appointment.js';
 import { connectDB } from './config/db.js'; 
+import { mongoAdminConnection } from './config/db.js';
+import { seedPractitioners } from './seed.js';
 
 dotenv.config();
 
@@ -27,4 +29,8 @@ app.use('/api/appointments', appointmentRoutes);
 
 // DB + start
 connectDB();
+
+// Connect to DB from admin account and seed practitioners
+seedPractitioners();
+
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
