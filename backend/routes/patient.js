@@ -44,9 +44,9 @@ router.put("/me", protect, async (req, res) => {
     const updates = req.body;
 
     const patient = await Patient.findOneAndUpdate(
-      { Email: email },
+      { user: req.user._id },
       updates,
-      { new: true, upsert: true, runValidators: false }
+      { new: true, upsert: true, runValidators: true }
     );
 
     res.json(patient);
@@ -57,6 +57,5 @@ router.put("/me", protect, async (req, res) => {
 });
 
 export default router;
-
 
 
