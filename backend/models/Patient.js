@@ -24,22 +24,32 @@ const mediHistSchema = new mongoose.Schema({
 });
 
 const patientSchema = new mongoose.Schema({
-  Email: { type: String, required: true },
-    Name: { type: String, required: true },
-  Age: { type: Number },
-  Weight: { type: Number },
-  Height: { type: Number },
-  Sex: { type: String },
-  Phone: { type: String },
-  Address: { type: String },
-  City: { type: String },
-  State: { type: String },
-  Zip: { type: String },
+  // 🔗 Link to User
+  user: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: "User", 
+    unique: true, // each user has exactly one patient record
+    required: true 
+  },
 
+  // 👤 Core patient demographics
+  Email:   { type: String, required: true },
+  Name:    { type: String, required: true },
+  Age:     { type: Number, default: 0 },
+  Weight:  { type: Number, default: 0 },
+  Height:  { type: Number, default: 0 },
+  Sex:     { type: String, default: "" },
+  Phone:   { type: String, default: "" },
+  Address: { type: String, default: "" },
+  City:    { type: String, default: "" },
+  State:   { type: String, default: "" },
+  Zip:     { type: String, default: "" },
+
+  // 🧠 Embedded subdocuments
   MedHist: [mediHistSchema],
   Prescriptions: [prescriptionSchema],
   Allergies: [allergySchema],
-});
+}, { timestamps: true });
 
 export default mongoose.model("Patient", patientSchema);
 
