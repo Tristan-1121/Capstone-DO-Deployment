@@ -57,7 +57,7 @@ router.put("/:id/status", protect, async (req, res) => {
     const statusNormalized = typeof Status === "string" ? Status.toLowerCase() : "";
 
     // If status changes to 'canceled' or 'completed', delete the callback
-    if (statusNormalized === "canceled" || statusNormalized === "completed") {
+    if (statusNormalized === "completed") {
       const deleted = await CallBack.findByIdAndDelete(callbackId);
       if (!deleted) {
         return res.status(404).json({ message: "Callback request not found" });

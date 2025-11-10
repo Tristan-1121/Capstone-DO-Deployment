@@ -7,7 +7,7 @@ const callBackSchema = new mongoose.Schema({
     Reason: { type: String, required: true },
     Status: { 
         type: String, 
-        enum: ['pending', 'completed', 'canceled'],
+        enum: ['pending', 'completed'],
         default: 'pending'
     }
 });
