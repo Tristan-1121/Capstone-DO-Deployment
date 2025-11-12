@@ -14,7 +14,7 @@ import Visits from "./pages/Visits.jsx";
 import Medication from "./pages/Medication.jsx";
 import About from "./pages/About.jsx";
 
-// Patient info context + page (from your HEAD)
+// Patient info context + page
 import { PatientProvider } from "./context/PatientContext.jsx";
 import PatientInfo from "./pages/patient-info/PatientInfo.jsx";
 
@@ -31,8 +31,9 @@ export default function App() {
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
 
-            {/* Protected shell */}
-            <Route element={<RequireAuth />}>
+            {/* Protected shell for patients */}
+            {/* allow={['patient']} means only patient role can access these routes */}
+            <Route element={<RequireAuth allow={["patient"]} />}>
               <Route element={<Layout />}>
                 <Route path="/" element={<Navigate to="/profile" replace />} />
                 <Route path="/profile" element={<Profile />} />
@@ -40,7 +41,6 @@ export default function App() {
                 <Route path="/visits" element={<Visits />} />
                 <Route path="/medication" element={<Medication />} />
                 <Route path="/about" element={<About />} />
-                {/* New route from HEAD */}
                 <Route path="/patient-info" element={<PatientInfo />} />
               </Route>
             </Route>
