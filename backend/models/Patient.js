@@ -1,7 +1,27 @@
 import mongoose from "mongoose";
-import mediHistSchema from "./mediHist.js";
-import prescriptionSchema from "./prescriptions.js";
-import allergySchema from "./allergies.js";
+
+const allergySchema = new mongoose.Schema({
+  allergen: { type: String, required: true },
+  reaction: { type: String, required: true },
+  severity: {
+    type: String,
+    enum: ["Mild", "Moderate", "Severe"],
+    default: "Mild",
+  },
+});
+
+const prescriptionSchema = new mongoose.Schema({
+  medicationName: { type: String, required: true },
+  dosage: { type: String, required: true },
+  frequency: { type: String, required: true },
+});
+
+const mediHistSchema = new mongoose.Schema({
+  conditions: [String],
+  surgeries: [String],
+  familyHistory: String,
+  notes: String,
+});
 
 const patientSchema = new mongoose.Schema({
   // 🔗 Link to User
