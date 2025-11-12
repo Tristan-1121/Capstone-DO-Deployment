@@ -6,6 +6,7 @@ import cors from 'cors';
 import authRoutes from './routes/auth.js';
 import patientRoutes from './routes/patient.js';
 import appointmentRoutes from './routes/appointment.js';
+import callBackRoutes from './routes/callBack.js';
 import { connectDB } from './config/db.js'; 
 import { seedPractitioners } from './seed.js';
 
@@ -27,6 +28,7 @@ app.use(express.json());
 app.use('/api/users', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
+app.use('/api/callbacks', callBackRoutes);
 
 // DB + start
 connectDB();
