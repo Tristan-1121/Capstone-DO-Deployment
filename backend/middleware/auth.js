@@ -1,29 +1,35 @@
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
-// Middleware to protect routes (only allow logged-in users)
+// Protect routes: only allow requests with a valid JWT
 export const protect = async (req, res, next) => {
   let token;
 
   try {
-    // Check if Authorization header starts with "Bearer"
-    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
-      
-      // Extract the token after "Bearer "
+    // Expect "Authorization: Bearer <token>"
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith("Bearer")
+    ) {
       token = req.headers.authorization.split(" ")[1];
 
-      // Verify token using JWT secret
+      // Decode token (payload should include at least { id, role })
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-      // Find user and attach to req (excluding password)
-      req.user = await User.findById(decoded.id).select("-password");
+      // Load the latest user data from DB (includes role)
+      const user = await User.findById(decoded.id).select("-password");
+      if (!user) {
+        return res.status(401).json({ message: "Not authorized, user not found" });
+      }
 
-      return next(); // move to next middleware or route
+      // Attach user document (with role) to request
+      req.user = user;
+
+      return next();
     }
 
-    // If no token present
+    // No Authorization header or no Bearer token
     return res.status(401).json({ message: "Not authorized, no token" });
-
   } catch (err) {
     console.error("Token verification failed:", err.message);
     return res.status(401).json({ message: "Not authorized, token failed" });
