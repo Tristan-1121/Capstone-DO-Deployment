@@ -5,11 +5,7 @@ const callBackSchema = new mongoose.Schema({
     Email: { type: String, required: true },
     Phone: { type: String, required: true },
     Reason: { type: String, required: true },
-    Status: { 
-        type: String, 
-        enum: ['pending', 'completed'],
-        default: 'pending'
-    }
+    Status: { type: String, default: 'pending'}
 });
 
 export default mongoose.model('CallBack', callBackSchema);
