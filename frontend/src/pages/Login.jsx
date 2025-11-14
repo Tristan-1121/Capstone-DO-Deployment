@@ -13,14 +13,24 @@ export default function Login() {
   const submit = async (e) => {
     e.preventDefault();
     setError("");
+
     if (!form.email || !form.password) {
       setError("Please fill all fields");
       return;
     }
+
     try {
       setLoading(true);
-      await login(form.email, form.password);
-      navigate("/profile");
+
+      // login() returns the normalized user object, including role
+      const user = await login(form.email, form.password);
+
+      if (user.role === "practitioner") {
+        navigate("/practitioner/dashboard", { replace: true });
+      } else {
+        // Default route for patients
+        navigate("/profile", { replace: true });
+      }
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || "Login failed";
       setError(msg);
@@ -86,7 +96,9 @@ export default function Login() {
           </p>
         </div>
 
-        <p className="text-xs mt-4 text-gray-400">Secure & confidential | University of West Florida</p>
+        <p className="text-xs mt-4 text-gray-400">
+          Secure & confidential | University of West Florida
+        </p>
       </div>
     </>
   );

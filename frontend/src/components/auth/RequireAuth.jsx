@@ -1,30 +1,32 @@
 import { Navigate, Outlet } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
-// Protects routes and can optionally restrict by role
 export default function RequireAuth({ allow }) {
   const { user, ready } = useAuth();
 
-  // Wait until auth initialization is done
+  // Wait for auth state to finish hydrating
   if (!ready) return null;
 
-  // No logged in user
+  // Not logged in at all
   if (!user) {
     return <Navigate to="/login" replace />;
   }
 
-  // If allow is provided, check that the user role is allowed
+  // If allow is provided, enforce role-based access
   if (allow && Array.isArray(allow) && allow.length > 0) {
     const role = user.role;
     const isAllowed = allow.includes(role);
 
     if (!isAllowed) {
-      // For now send them back to login
-      // Later we will send each role to its own dashboard
-      return <Navigate to="/login" replace />;
+      // Send user to their own "home" instead of back to login
+      if (role === "practitioner") {
+        return <Navigate to="/practitioner/dashboard" replace />;
+      }
+      // Default: treat as patient
+      return <Navigate to="/profile" replace />;
     }
   }
 
-  // User is authenticated and allowed
+  // Authenticated and allowed
   return <Outlet />;
 }
