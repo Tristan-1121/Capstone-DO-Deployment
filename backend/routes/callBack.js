@@ -1,30 +1,65 @@
 import express from "express";
 import { protect } from "../middleware/auth.js";
 import CallBack from "../models/CallBack.js";
+import Notes from "../models/Notes.js";
+import Patient from "../models/Patient.js";
 
 const router = express.Router();
 
 // POST create a new callback request
 router.post("/", protect, async (req, res) => {
   try {
-    const { Phone, Email, Reason } = req.body;
-    // require Reason and at least one contact method (phone OR email)
-    if ((!Phone && !Email) || !Reason) {
-      return res.status(400).json({ message: "Phone or Email, and Reason are required" });
+    const { notesId, notes, Phone: bodyPhone, Email: bodyEmail, Reason } = req.body;
+
+    if (!Reason) {
+      return res.status(400).json({ message: "Reason is required" });
     }
 
-    const patientId = req.user.id;
+    // 1) Determine notes document id (prefer explicit notesId, else try to extract from notes text)
+    let resolvedNotesId = notesId;
+    if (!resolvedNotesId && typeof notes === "string") {
+      const m = notes.match(/[0-9a-fA-F]{24}/);
+      if (m) resolvedNotesId = m[0];
+    }
+
+    // 2) If we have a notes id, load the note and get the patient reference
+    let patientId = null;
+    if (resolvedNotesId) {
+      const note = await Notes.findById(resolvedNotesId).select("patient patientId user").lean();
+      if (!note) return res.status(404).json({ message: "Notes not found" });
+      // support several possible field names used in notes schema
+      patientId = note.patient || note.patientId || note.user || null;
+    }
+
+    // 3) fallback to authenticated user's id when patientId not found via notes
+    if (!patientId) {
+      patientId = req.user?.id || req.user?._id;
+    }
+
+    // 4) Prefer explicit Phone/Email from body, otherwise lookup patient contact info
+    let Phone = bodyPhone || null;
+    let Email = bodyEmail || null;
+    if ((!Phone || !Email) && patientId) {
+      const patient = await Patient.findById(patientId).select("Phone Email phone email").lean();
+      if (!patient) return res.status(404).json({ message: "Patient not found" });
+      if (!Phone) Phone = patient.Phone || patient.phone || null;
+      if (!Email) Email = patient.Email || patient.email || null;
+    }
+
+    if (!Phone && !Email) {
+      return res.status(400).json({ message: "Phone or Email is required" });
+    }
+
+    // 5) create callback request associated with the patientId found from notes (or fallback)
     const newCallBack = await CallBack.create({
       patientId,
       Phone: Phone || null,
       Email: Email || null,
       Reason,
+      notes: resolvedNotesId || notes || "",
     });
 
-    // prefer phone when available, otherwise fall back to email
     const contactUsed = Phone ? "phone" : "email";
-
-    // include which contact method will be used in the response (doesn't change stored doc)
     const payload = newCallBack.toObject ? { ...newCallBack.toObject(), contactUsed } : { ...newCallBack, contactUsed };
 
     res.status(201).json(payload);
@@ -48,7 +83,5 @@ router.delete("/:id", protect, async (req, res) => {
     res.status(500).json({ message: "Server error deleting callback request" });
   }
 });
-
-
 
 export default router;
