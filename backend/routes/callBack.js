@@ -1,65 +1,45 @@
 import express from "express";
 import { protect } from "../middleware/auth.js";
 import CallBack from "../models/CallBack.js";
-import Notes from "../models/Notes.js";
 import Patient from "../models/Patient.js";
+import Appointment from "../models/appointments.js";
+import mongoose from "mongoose";
 
 const router = express.Router();
 
-// POST create a new callback request
+// POST create a new callback request — only appointmentId is required
 router.post("/", protect, async (req, res) => {
   try {
-    const { notesId, notes, Phone: bodyPhone, Email: bodyEmail, Reason } = req.body;
+    const { appointmentId } = req.body;
 
-    if (!Reason) {
-      return res.status(400).json({ message: "Reason is required" });
+    if (!appointmentId) return res.status(400).json({ message: "appointmentId required" });
+    if (!mongoose.isValidObjectId(appointmentId)) {
+      return res.status(400).json({ message: "Invalid appointmentId" });
     }
 
-    // 1) Determine notes document id (prefer explicit notesId, else try to extract from notes text)
-    let resolvedNotesId = notesId;
-    if (!resolvedNotesId && typeof notes === "string") {
-      const m = notes.match(/[0-9a-fA-F]{24}/);
-      if (m) resolvedNotesId = m[0];
-    }
+    // find appointment -> get referenced user id
+    const appt = await Appointment.findById(appointmentId).select("patientId").lean();
+    if (!appt) return res.status(404).json({ message: "Appointment not found" });
 
-    // 2) If we have a notes id, load the note and get the patient reference
-    let patientId = null;
-    if (resolvedNotesId) {
-      const note = await Notes.findById(resolvedNotesId).select("patient patientId user").lean();
-      if (!note) return res.status(404).json({ message: "Notes not found" });
-      // support several possible field names used in notes schema
-      patientId = note.patient || note.patientId || note.user || null;
-    }
+    // find Patient record that links to that User (appointment.patientId is a User id)
+    const patientDoc = await Patient.findOne({ user: appt.patientId }).select("Phone Email").lean();
+    if (!patientDoc) return res.status(404).json({ message: "Patient record not found for appointment" });
 
-    // 3) fallback to authenticated user's id when patientId not found via notes
-    if (!patientId) {
-      patientId = req.user?.id || req.user?._id;
-    }
+    // require a phone number on the patient
+    const phone = patientDoc.Phone || patientDoc.phone || null;
+    const email = patientDoc.Email || patientDoc.email || null;
+    if (!phone && !email) return res.status(400).json({ message: "Patient has no contact info" });
 
-    // 4) Prefer explicit Phone/Email from body, otherwise lookup patient contact info
-    let Phone = bodyPhone || null;
-    let Email = bodyEmail || null;
-    if ((!Phone || !Email) && patientId) {
-      const patient = await Patient.findById(patientId).select("Phone Email phone email").lean();
-      if (!patient) return res.status(404).json({ message: "Patient not found" });
-      if (!Phone) Phone = patient.Phone || patient.phone || null;
-      if (!Email) Email = patient.Email || patient.email || null;
-    }
-
-    if (!Phone && !Email) {
-      return res.status(400).json({ message: "Phone or Email is required" });
-    }
-
-    // 5) create callback request associated with the patientId found from notes (or fallback)
+    // create callback using patient's id and phone (prefer phone)
     const newCallBack = await CallBack.create({
-      patientId,
-      Phone: Phone || null,
-      Email: Email || null,
-      Reason,
-      notes: resolvedNotesId || notes || "",
+      patientId: patientDoc._id,
+      Phone: phone,
+      Email: email,
+      Reason: `Callback requested for appointment ${appointmentId}`,
+      appointmentId,
     });
 
-    const contactUsed = Phone ? "phone" : "email";
+    const contactUsed = phone ? "phone" : "email";
     const payload = newCallBack.toObject ? { ...newCallBack.toObject(), contactUsed } : { ...newCallBack, contactUsed };
 
     res.status(201).json(payload);
