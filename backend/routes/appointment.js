@@ -48,9 +48,14 @@ router.get("/:id", protect, async (req, res) => {
 // POST /api/appointments
 router.post("/", protect, async (req, res) => {
   try {
-    const { date, timeStart, timeEnd, type, reason } = req.body;
-    if (!date || !timeStart || !timeEnd || !type || !reason) {
+    const { date, timeStart, timeEnd, type, reason, practitionerId } = req.body;
+
+    if (!date || !timeStart || !timeEnd || !type || !reason || !practitionerId) {
       return res.status(400).json({ message: "Missing required fields" });
+    }
+
+    if (!mongoose.isValidObjectId(practitionerId)) {
+      return res.status(400).json({ message: "Invalid practitionerId" });
     }
 
     const startAt = new Date(`${date}T${timeStart}:00`);
@@ -61,6 +66,7 @@ router.post("/", protect, async (req, res) => {
 
     const appt = await Appointment.create({
       patientId: req.user._id,
+      practitionerId,
       date,
       timeStart,
       timeEnd,
