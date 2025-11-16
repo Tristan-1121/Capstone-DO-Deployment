@@ -19,7 +19,7 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],  // (optional: drop the trailing /)
   credentials: true,
 }));
 app.use(express.json());
@@ -33,7 +33,7 @@ app.use('/api/notes', notesRoutes);
 
 // DB + start
 connectDB();
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
-
-//connect to DB from admin account and seed practitioners
-seedPractitioners();
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+  seedPractitioners(); // Seed practitioner users on server start
+});

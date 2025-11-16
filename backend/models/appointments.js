@@ -10,6 +10,14 @@ const appointmentSchema = new mongoose.Schema(
       index: true,
     },
 
+    // which practitioner this appointment is with
+    practitionerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Practitioner',
+      required: true,
+      index: true,
+    },
+
     // values sent from the frontend form
     date: { type: String, required: true },        // "YYYY-MM-DD"
     timeStart: { type: String, required: true },   // "HH:mm"

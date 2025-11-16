@@ -5,24 +5,34 @@ import { login as apiLogin, register as apiRegister, me as apiMe } from "../api/
 const AuthCtx = createContext(null);
 
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [ready, setReady] = useState(false);
+  const [user, setUser] = useState(null);   // { id, email, fullName, role, ... }
+  const [ready, setReady] = useState(false); // true when initial auth check is done
 
-  // hydrate from localStorage on boot
+  // Hydrate auth state from localStorage on app load
   useEffect(() => {
     const token = localStorage.getItem("token");
     const cachedUser = localStorage.getItem("user");
+
     if (token) {
       api.defaults.headers.Authorization = `Bearer ${token}`;
+
+      // Use cached user immediately for UI, if present
       if (cachedUser) {
-        try { setUser(JSON.parse(cachedUser)); } catch {}
+        try {
+          setUser(JSON.parse(cachedUser));
+        } catch {
+          // ignore parse errors and fall back to /me
+        }
       }
+
+      // Refresh user from backend (/me) to stay in sync
       (async () => {
         try {
           const profile = await apiMe().catch(() => null);
           if (profile) {
-            setUser(profile);
-            localStorage.setItem("user", JSON.stringify(profile));
+            const normalized = buildUserFromFlat(profile);
+            setUser(normalized);
+            localStorage.setItem("user", JSON.stringify(normalized));
           }
         } finally {
           setReady(true);
@@ -33,24 +43,36 @@ export function AuthProvider({ children }) {
     }
   }, []);
 
-  // Normalize a flat backend response to a user object
-  function buildUserFromFlat(data) {
-    // backend login: { id, username, email, fullName, role, token }
-    // backend register: { email, fullName, role, token } (may not include id/username)
-    return {
-      id: data.id ?? data._id ?? null,
-      username: data.username ?? (data.email ? data.email.split("@")[0] : null),
-      email: data.email ?? null,
-      fullName: data.fullName ?? null,
-      role: data.role ?? "patient",
-    };
-  }
+// Converts backend responses into a consistent user object
+function buildUserFromFlat(data) {
+  return {
+    // Normalize id so it works whether the server sends id or _id
+    id: data.id ?? data._id ?? null,
 
+    // Use provided username or fall back to the email prefix
+    username: data.username ?? (data.email ? data.email.split("@")[0] : null),
+
+    // Always include the email if provided
+    email: data.email ?? null,
+
+    // Use fullName from the server or build it from first and last name
+    fullName:
+      data.fullName ??
+      (`${data.firstName ?? ""} ${data.lastName ?? ""}`.trim() || null),
+
+    // Default the role to patient if the server does not provide one
+    role: data.role ?? "patient",
+  };
+}
+
+
+  // Login and store token + normalized user (including role)
   async function login(email, password) {
     const data = await apiLogin(email, password);
     const token = data.token;
     if (!token) throw new Error("Missing token from server");
-    const userObj = data.user ? data.user : buildUserFromFlat(data);
+
+    const userObj = data.user ? buildUserFromFlat(data.user) : buildUserFromFlat(data);
 
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userObj));
@@ -59,11 +81,13 @@ export function AuthProvider({ children }) {
     return userObj;
   }
 
+  // Register and immediately treat the new user as logged in
   async function register(fullName, email, password) {
     const data = await apiRegister(fullName, email, password);
     const token = data.token;
     if (!token) throw new Error("Missing token from server");
-    const userObj = data.user ? data.user : buildUserFromFlat(data);
+
+    const userObj = data.user ? buildUserFromFlat(data.user) : buildUserFromFlat(data);
 
     localStorage.setItem("token", token);
     localStorage.setItem("user", JSON.stringify(userObj));
@@ -72,6 +96,7 @@ export function AuthProvider({ children }) {
     return userObj;
   }
 
+  // Clear auth state everywhere
   function logout() {
     localStorage.removeItem("token");
     localStorage.removeItem("user");
@@ -79,7 +104,18 @@ export function AuthProvider({ children }) {
     setUser(null);
   }
 
-  const value = useMemo(() => ({ user, ready, login, register, logout }), [user, ready]);
+  const value = useMemo(
+    () => ({
+      user,
+      role: user?.role ?? null, // convenient shortcut for role-based logic
+      ready,
+      login,
+      register,
+      logout,
+    }),
+    [user, ready]
+  );
+
   return <AuthCtx.Provider value={value}>{children}</AuthCtx.Provider>;
 }
 

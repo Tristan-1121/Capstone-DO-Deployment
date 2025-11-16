@@ -4,9 +4,11 @@ import bcrypt from 'bcryptjs';
 
 //schema definition
 const practitionerSchema = new mongoose.Schema({
-    Email: { type: String, required: true },
-    Name: { type: String, required: true },
-    Password: { type: String, required: true },
+    firstName: { type: String, required: true },
+    lastName: { type: String, required: true },
+    email: { type: String, required: true },
+    password: { type: String, required: true },
+    role: { type: String, default: 'practitioner'},
 });
 
 //hash password before saving

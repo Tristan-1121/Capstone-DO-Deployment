@@ -1,49 +1,40 @@
-import express from 'express';
-import User from '../models/User.js';
-import { protect } from '../middleware/auth.js';
-import jwt from 'jsonwebtoken';
+import express from "express";
+import User from "../models/User.js";
+import generateToken from "../utils/generateToken.js";
+import { protect } from "../middleware/auth.js";
 
 const router = express.Router();
 
-const STUDENT_EMAIL_RE = /^[a-z]{2}\d{2,4}@students\.uwf\.edu$/i;
-
-// Register
-router.post('/register', async (req, res) => {
+// POST /api/users/register
+// Creates a new user account (patient by default)
+router.post("/register", async (req, res) => {
   try {
-    const { firstName, lastName, email, password } = req.body;
+    const { firstName, lastName, email, password, role } = req.body;
 
     if (!firstName || !lastName || !email || !password) {
-      return res.status(400).json({ message: 'Please fill all fields' });
+      return res
+        .status(400)
+        .json({ message: "First name, last name, email, and password are required" });
     }
 
-    const emailLc = String(email).toLowerCase().trim();
-    if (!STUDENT_EMAIL_RE.test(emailLc)) {
-      return res.status(400).json({ 
-        message: 'Email must be initials + 2–4 digits @students.uwf.edu (e.g., tc12@students.uwf.edu)' 
-      });
+    const normalizedEmail = String(email).toLowerCase().trim();
+
+    const existing = await User.findOne({ email: normalizedEmail });
+    if (existing) {
+      return res.status(400).json({ message: "User already exists with that email" });
     }
 
-    // initials must match first letters of first/last
-    const initials = (firstName[0] || '').toLowerCase() + (lastName[0] || '').toLowerCase();
-    const local = emailLc.split('@')[0];
-    if (!local.startsWith(initials)) {
-      return res.status(400).json({ message: 'Email initials must match your first and last name' });
-    }
-
-    const exists = await User.findOne({ email: emailLc });
-    if (exists) return res.status(400).json({ message: 'User already exists' });
-
+    // Role defaults to "patient" if not provided
     const user = await User.create({
       firstName,
       lastName,
-      fullName: `${firstName} ${lastName}`,
-      email: emailLc,
-      username: local, 
+      email: normalizedEmail,
       password,
-      role: 'patient',
+      role: role || "patient",
     });
 
-    const token = generateToken(user._id);
+    const token = generateToken(user);
+
     return res.status(201).json({
       id: user._id,
       username: user.username,
@@ -52,37 +43,37 @@ router.post('/register', async (req, res) => {
       role: user.role,
       token,
     });
-
   } catch (err) {
-    //  Handle strong-password validation errors
-    if (err.name === 'ValidationError') {
-      return res.status(400).json({
-        message: Object.values(err.errors)[0].message
-      });
-    }
-
-    console.error(err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error("Register error:", err);
+    return res.status(500).json({ message: "Server error during registration" });
   }
 });
 
-// Login
-router.post('/login', async (req, res) => {
+// POST /api/users/login
+// Authenticates user by email and password
+router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
-    
+
     if (!email || !password) {
-      return res.status(400).json({ message: 'Please fill all fields' });
+      return res.status(400).json({ message: "Please provide email and password" });
     }
 
-    const user = await User.findOne({ email: String(email).toLowerCase().trim() });
+    const normalizedEmail = String(email).toLowerCase().trim();
 
-    if (!user || !(await user.matchPassword(password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
+    const user = await User.findOne({ email: normalizedEmail });
+    if (!user) {
+      return res.status(401).json({ message: "Invalid credentials" });
     }
 
-    const token = generateToken(user._id);
-    return res.status(200).json({
+    const isMatch = await user.matchPassword(password);
+    if (!isMatch) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    const token = generateToken(user);
+
+    return res.json({
       id: user._id,
       username: user.username,
       email: user.email,
@@ -90,24 +81,30 @@ router.post('/login', async (req, res) => {
       role: user.role,
       token,
     });
-
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ message: 'Server error' });
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Server error during login" });
   }
 });
 
-// Current user
-router.get('/me', protect, async (req, res) => {
+// GET /api/users/me
+// Returns the currently logged-in user's profile
+router.get("/me", protect, async (req, res) => {
   try {
-    res.status(200).json(req.user);
+    // protect middleware already attached req.user with password removed
+    const user = req.user;
+
+    return res.json({
+      id: user._id,
+      username: user.username,
+      email: user.email,
+      fullName: user.fullName,
+      role: user.role,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Me error:", err);
+    return res.status(500).json({ message: "Server error fetching profile" });
   }
 });
-
-const generateToken = (id) =>
-  jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' });
 
 export default router;
