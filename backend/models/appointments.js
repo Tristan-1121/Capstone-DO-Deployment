@@ -13,7 +13,7 @@ const appointmentSchema = new mongoose.Schema(
     // which practitioner this appointment is with
     practitionerId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Practitioner',
+      ref: 'User',
       required: true,
       index: true,
     },
@@ -32,6 +32,12 @@ const appointmentSchema = new mongoose.Schema(
     // computed for fast queries/sorting
     startAt: { type: Date, index: true },
     endAt: { type: Date, index: true },
+
+    // quick summary stored on appointment (optional)
+    notesSummary: { type: String, default: '' },
+
+    // reference to a Note document (if you use a separate Note model)
+    noteId: { type: mongoose.Schema.Types.ObjectId, ref: 'Note', index: true },
 
     status: {
       type: String,

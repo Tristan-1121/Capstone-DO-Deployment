@@ -1,61 +1,109 @@
-import express from "express";
-import { protect } from "../middleware/auth.js";
-import Notes from "../models/Notes.js";
+import express from 'express';
+import mongoose from 'mongoose';
+import { protect } from '../middleware/auth.js';
+import Appointment from '../models/appointments.js';
+import Patient from '../models/Patient.js';
+import Note from '../models/notes.js';
 
 const router = express.Router();
 
-// Create a new note (practitioner only)
-router.post("/", protect, async (req, res) => {
+// all routes require auth
+router.use(protect);
+
+// helper: ensure current user is the practitioner assigned to appointment
+async function ensureAssignedPractitioner(req, appointmentId) {
+  if (!mongoose.isValidObjectId(appointmentId)) {
+    const err = new Error('Invalid appointmentId');
+    err.status = 400;
+    throw err;
+  }
+  const appt = await Appointment.findById(appointmentId).select('practitionerId patientId').lean();
+  if (!appt) {
+    const err = new Error('Appointment not found');
+    err.status = 404;
+    throw err;
+  }
+  // practitioner must match logged-in user
+  if (!appt.practitionerId || appt.practitionerId.toString() !== req.user._id.toString()) {
+    const err = new Error('Forbidden');
+    err.status = 403;
+    throw err;
+  }
+  return appt;
+}
+
+// POST /api/notes
+// create or upsert a note for an appointment (only assigned practitioner)
+router.post('/', async (req, res) => {
   try {
-    if (req.user.role !== "practitioner") return res.status(403).json({ message: "Forbidden" });
+    const { appointmentId, summary = '', plan = '', followUps = [] } = req.body;
+    if (!appointmentId) return res.status(400).json({ message: 'appointmentId required' });
 
-    const { patientId, content, dosage, frequency, additionalNotes, callBack } = req.body;
-    if (!patientId || !content) return res.status(400).json({ message: "patientId and content are required" });
+    const appt = await ensureAssignedPractitioner(req, appointmentId);
 
-    const note = await Notes.create({
-      patientId,
-      practitionerId: req.user.id,
-      content,
-      dosage,
-      frequency,
-      additionalNotes,
-      callBack,
-    });
+    // upsert note (one note per appointment)
+    const note = await Note.findOneAndUpdate(
+      { appointmentId },
+      {
+        appointmentId,
+        practitionerId: req.user._id,
+        patientId: appt.patientId,
+        summary,
+        plan,
+        followUps,
+      },
+      { new: true, upsert: true, setDefaultsOnInsert: true }
+    ).lean();
 
-    res.status(201).json(note);
+    return res.status(201).json(note);
   } catch (err) {
-    console.error("POST /api/notes error:", err);
-    res.status(500).json({ message: "Server error creating note" });
+    console.error('POST /api/notes error', err);
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message || 'Server error' });
   }
 });
 
-// List notes for a patient (practitioner or the patient themself)
-router.get("/patient/:id", protect, async (req, res) => {
+// GET /api/notes/:appointmentId
+// fetch the note for an appointment (only assigned practitioner)
+router.get('/:appointmentId', async (req, res) => {
   try {
-    const patientId = req.params.id;
-    const allowed = req.user.role === "practitioner" || req.user.id === patientId;
-    if (!allowed) return res.status(403).json({ message: "Forbidden" });
+    const { appointmentId } = req.params;
+    await ensureAssignedPractitioner(req, appointmentId);
 
-    const notes = await Notes.find({ patientId }).sort({ date: -1 }).select("-__v");
-    res.json(notes);
+    const note = await Note.findOne({ appointmentId }).lean();
+    if (!note) return res.status(404).json({ message: 'Note not found' });
+    return res.json(note);
   } catch (err) {
-    console.error("GET /api/notes/patient/:id error:", err);
-    res.status(500).json({ message: "Server error retrieving notes" });
+    console.error('GET /api/notes/:appointmentId error', err);
+    const status = err.status || 500;
+    return res.status(status).json({ message: err.message || 'Server error' });
   }
 });
 
-// Delete a note (practitioner only)
-router.delete("/:id", protect, async (req, res) => {
+// PUT /api/notes/:id
+// update an existing note (only practitioner who owns the note)
+router.put('/:id', async (req, res) => {
   try {
-    if (req.user.role !== "practitioner") return res.status(403).json({ message: "Forbidden" });
+    const { id } = req.params;
+    if (!mongoose.isValidObjectId(id)) return res.status(400).json({ message: 'Invalid id' });
 
-    const deleted = await Notes.findByIdAndDelete(req.params.id);
-    if (!deleted) return res.status(404).json({ message: "Note not found" });
+    const existing = await Note.findById(id);
+    if (!existing) return res.status(404).json({ message: 'Note not found' });
 
-    res.json({ message: "Note deleted" });
+    if (existing.practitionerId.toString() !== req.user._id.toString()) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+
+    const updates = {};
+    if (req.body.summary !== undefined) updates.summary = req.body.summary;
+    if (req.body.plan !== undefined) updates.plan = req.body.plan;
+    if (req.body.followUps !== undefined) updates.followUps = req.body.followUps;
+
+    const updated = await Note.findByIdAndUpdate(id, updates, { new: true }).lean();
+    return res.json(updated);
   } catch (err) {
-    console.error("DELETE /api/notes/:id error:", err);
-    res.status(500).json({ message: "Server error deleting note" });
+    console.error('PUT /api/notes/:id error', err);
+    return res.status(500).json({ message: 'Server error updating note' });
   }
 });
 
