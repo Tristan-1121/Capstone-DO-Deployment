@@ -1,23 +1,31 @@
-// frontend/src/api/callbacks.js
 import api from "./http";
 
-// Get callbacks for logged-in practitioner, optional status filter
-export async function getCallbacks(status) {
-  const params = {};
-  if (status) params.status = status;
+const BASE = "/api/callbacks";
 
-  const { data } = await api.get("/api/callbacks", { params });
-  return data;
+export async function getMyCallbacks(status = "pending") {
+  const query = status !== "all" ? `?status=${status}` : "";
+  const res = await api.get(`${BASE}/mine${query}`);
+  return res.data;
 }
 
-// Create a new callback
-export async function createCallback(payload) {
-  const { data } = await api.post("/api/callbacks", payload);
-  return data;
+/**
+ * Update the status of a callback by ID.
+ * newStatus: "pending" | "in_progress" | "resolved"
+ */
+export async function updateCallbackStatus(id, newStatus) {
+  const res = await api.patch(`${BASE}/${id}/status`, {
+    status: newStatus,
+  });
+  return res.data;
 }
 
-// Update an existing callback (status, priority, reason)
-export async function updateCallback(id, payload) {
-  const { data } = await api.put(`/api/callbacks/${id}`, payload);
-  return data;
+/**
+ * Delete a callback by ID.
+ */
+export async function deleteCallback(id) {
+  const res = await api.delete(`${BASE}/${id}`);
+  return res.data;
 }
+
+
+

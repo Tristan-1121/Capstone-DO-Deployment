@@ -24,6 +24,7 @@ import PractitionerDashboard from "./pages/practitioner/Dashboard.jsx";
 import PractitionerAppointments from "./pages/practitioner/Appointments.jsx";
 import PractitionerCallbacks from "./pages/practitioner/Callbacks.jsx";
 import PractitionerPatients from "./pages/practitioner/Patients.jsx";
+import NotesPage from "./pages/practitioner/Notes.jsx";
 
 // Fallback
 import NotFound from "./components/NotFound.jsx";
@@ -74,6 +75,13 @@ export default function App() {
                   path="/practitioner/patients"
                   element={<PractitionerPatients />}
                 />
+                <Route
+                  path="/practitioner/notes/:appointmentId"
+                  element={<NotesPage />}
+                  />
+                <Route
+                  path="/practitioner/callbacks" 
+                  element={<PractitionerCallbacks />} />
               </Route>
             </Route>
 

@@ -1,9 +1,7 @@
-// backend/models/CallBack.js
 import mongoose from "mongoose";
 
 const { Schema } = mongoose;
 
-// One follow-up task (callback) for a patient
 const callbackSchema = new Schema(
   {
     // Patient who should be contacted
@@ -13,28 +11,33 @@ const callbackSchema = new Schema(
       required: true,
     },
 
-    // Practitioner responsible for this callback
+    // Practitioner responsible
     practitioner: {
       type: Schema.Types.ObjectId,
       ref: "Practitioner",
       required: true,
     },
 
-    // Short description of why the callback is needed
+    // The reason for the callback
     reason: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // Urgency level for the board
+    // Callback due date (NEW)
+    dueDate: {
+      type: Date,
+    },
+
+    // Urgency level
     priority: {
       type: String,
       enum: ["low", "medium", "high"],
       default: "medium",
     },
 
-    // Workflow state used for board columns
+    // Board column
     status: {
       type: String,
       enum: ["pending", "in_progress", "resolved"],
@@ -42,10 +45,11 @@ const callbackSchema = new Schema(
     },
   },
   {
-    timestamps: true, // adds createdAt and updatedAt
+    timestamps: true,
   }
 );
 
 const CallBack = mongoose.model("CallBack", callbackSchema);
 
 export default CallBack;
+

@@ -267,6 +267,15 @@ export default function PractitionerAppointments() {
                       {appt.status || "scheduled"}
                     </td>
                     <td className="px-3 py-2 align-top space-x-2 whitespace-nowrap">
+                      {/* Start Appointment button */}
+                      <button
+                        type="button"
+                        onClick={() => window.location.href = `/practitioner/notes/${appt._id}`}
+                        className="px-2 py-1 text-xs rounded border border-blue-500 text-blue-600 hover:bg-blue-50"
+                      >
+                        Start Appointment
+                      </button>
+
                       <button
                         type="button"
                         className="px-2 py-1 text-xs rounded border border-gray-300 hover:bg-gray-50"
@@ -274,6 +283,7 @@ export default function PractitionerAppointments() {
                       >
                         Reschedule
                       </button>
+
                       <button
                         type="button"
                         className="px-2 py-1 text-xs rounded border border-red-500 text-red-600 hover:bg-red-50"
