@@ -1,26 +1,29 @@
-//Mongoose schema and model for Practitioner
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 
-//schema definition
 const practitionerSchema = new mongoose.Schema({
-    firstName: { type: String, required: true },
-    lastName: { type: String, required: true },
-    email: { type: String, required: true },
-    password: { type: String, required: true },
-    role: { type: String, default: 'practitioner'},
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  
+  // ALWAYS use lowercase: password
+  password: { type: String, required: true },
+
+  role: { type: String, default: 'practitioner' },
 });
 
-//hash password before saving
-practitionerSchema.pre('save', async function (next) {
-  if (!this.isModified('Password')) return next();
+// Correct password hashing middleware
+practitionerSchema.pre("save", async function(next) {
+  if (!this.isModified("password")) return next();
+  
   const salt = await bcrypt.genSalt(10);
-  this.Password = await bcrypt.hash(this.Password, salt);
+  this.password = await bcrypt.hash(this.password, salt);
   next();
 });
 
-//model creation
-const Practitioner = mongoose.model('Practitioner', practitionerSchema);
+// Correct password comparison
+practitionerSchema.methods.matchPassword = async function(enteredPassword) {
+  return bcrypt.compare(enteredPassword, this.password);
+};
 
-//exporting the model
-export default Practitioner;
+export default mongoose.model("Practitioner", practitionerSchema);

@@ -1,79 +1,35 @@
+// backend/routes/callbacks.js
 import express from "express";
 import { protect } from "../middleware/auth.js";
 import CallBack from "../models/CallBack.js";
+import Practitioner from "../models/Practitioner.js";
 
 const router = express.Router();
 
-// POST create a new callback request
-router.post("/", protect, async (req, res) => {
+/**
+ * GET /api/callbacks/me
+ * Gets all callbacks assigned to the logged-in practitioner
+ */
+router.get("/me", protect, async (req, res) => {
   try {
-    const { Phone, Email, Reason } = req.body;
-    // require Reason and at least one contact method (phone OR email)
-    if ((!Phone && !Email) || !Reason) {
-      return res.status(400).json({ message: "Phone or Email, and Reason are required" });
+    // find practitioner matching logged-in user's email
+    const email = String(req.user.email || "").toLowerCase().trim();
+    const practitioner = await Practitioner.findOne({ email });
+
+    if (!practitioner) {
+      return res.status(404).json({ message: "Practitioner profile not found" });
     }
 
-    const patientId = req.user.id;
-    const newCallBack = await CallBack.create({
-      patientId,
-      Phone: Phone || null,
-      Email: Email || null,
-      Reason,
-    });
+    const callbacks = await CallBack.find({
+      practitioner: practitioner._id,
+    })
+      .populate("patient", "firstName lastName fullName email")
+      .sort({ createdAt: -1 });
 
-    // prefer phone when available, otherwise fall back to email
-    const contactUsed = Phone ? "phone" : "email";
-
-    // include which contact method will be used in the response (doesn't change stored doc)
-    const payload = newCallBack.toObject ? { ...newCallBack.toObject(), contactUsed } : { ...newCallBack, contactUsed };
-
-    res.status(201).json(payload);
+    res.json(callbacks);
   } catch (err) {
-    console.error("❌ POST /api/callbacks error:", err);
-    res.status(500).json({ message: "Server error creating callback request" });
-  }
-});
-
-// DELETE a callback request by Patient ID
-router.delete("/:id", protect, async (req, res) => {
-  try {
-    const callbackId = req.params.id;
-    const deletedCallBack = await CallBack.findByIdAndDelete(callbackId);
-    if (!deletedCallBack) {
-      return res.status(404).json({ message: "Callback request not found" });
-    }
-    res.status(200).json({ message: "Callback request deleted successfully" });
-  } catch (err) {
-    console.error("❌ DELETE /api/callbacks/:id error:", err);
-    res.status(500).json({ message: "Server error deleting callback request" });
-  }
-});
-
-//Update callback status by ID
-router.put("/:id/status", protect, async (req, res) => {
-  try {
-    const callbackId = req.params.id;
-    const { Status } = req.body;
-    const statusNormalized = typeof Status === "string" ? Status.toLowerCase() : "";
-
-    // If status changes to 'canceled' or 'completed', delete the callback
-    if (statusNormalized === "completed") {
-      const deleted = await CallBack.findByIdAndDelete(callbackId);
-      if (!deleted) {
-        return res.status(404).json({ message: "Callback request not found" });
-      }
-      return res.status(200).json({ message: `Callback request deleted because status set to '${Status}'`, deleted });
-    }
-
-    // Otherwise just update the status
-    const updatedCallBack = await CallBack.findByIdAndUpdate(callbackId, { Status }, { new: true });
-    if (!updatedCallBack) {
-      return res.status(404).json({ message: "Callback request not found" });
-    }
-    res.status(200).json(updatedCallBack);
-  } catch (err) {
-    console.error("❌ PUT /api/callbacks/:id/status error:", err);
-    res.status(500).json({ message: "Server error updating callback status" });
+    console.error("❌ Error loading callbacks:", err);
+    res.status(500).json({ message: "Failed to load callbacks" });
   }
 });
 

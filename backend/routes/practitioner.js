@@ -1,93 +1,69 @@
-//routes for practitioner model
+// backend/routes/practitioner.js
 import express from "express";
 import { protect } from "../middleware/auth.js";
-import Appointment from "../models/Appointment.js";
+import Practitioner from "../models/Practitioner.js";
+import Appointment from "../models/appointments.js"; // same file used by appointment routes
+import mongoose from "mongoose";
 
 const router = express.Router();
 
-//get all appointments regardless of patient
-router.get("/appointments", protect, async (req, res) => {
-    try {
-        const appointments = await Appointment.find({});
-        res.status(200).json(appointments);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching appointments", error });
-    }
-});
-
-//login practitioner
-router.post('/login', async (req, res) => {
+/**
+ * GET /api/practitioners/list
+ * Returns practitioners for dropdowns etc.
+ */
+router.get("/list", protect, async (req, res) => {
   try {
-    const { email, password } = req.body;
-    
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Please fill all fields' });
-    }
+    const practitioners = await Practitioner.find({})
+      .select("_id firstName lastName email role");
 
-    const Pract = await Practitioner.findOne({ email: String(email).toLowerCase().trim() });
-
-    if (!Pract || !(await Pract.matchPassword(password))) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = generateToken(Pract._id);
-    return res.status(200).json({
-      id: Pract._id,
-      username: Pract.username,
-      email: Pract.email,
-      fullName: Pract.fullName,
-      role: Pract.role,
-      token,
-    });
+    res.status(200).json(practitioners);
   } catch (error) {
-    res.status(500).json({ message: "Error logging in", error });
+    console.error("Error fetching practitioners:", error);
+    res.status(500).json({ message: "Error fetching practitioners" });
   }
 });
 
-//get all appointments for a single patient
-router.get("/appointments/patient/:patientId", protect, async (req, res) => {
-    try {
-        const appointments = await Appointment.find({ patientId: req.params.patientId });
-        res.status(200).json(appointments);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching appointments for patient", error });
+/**
+ * GET /api/practitioners/me/appointments?range=upcoming|past
+ * Returns appointments assigned to the logged-in practitioner.
+ */
+router.get("/me/appointments", protect, async (req, res) => {
+  try {
+    // Only practitioners should hit this, but if you want to be strict:
+    if (req.user.role !== "practitioner" && req.user.role !== "admin") {
+      return res.status(403).json({ message: "Not authorized" });
     }
-});
 
-// Get all patients
-router.get("/patients", protect, async (req, res) => {
-    try {
-        const patients = await Appointment.distinct("patientId");
-        res.status(200).json(patients);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching patients", error });
-    }
-});
+    const range = (req.query.range || "upcoming").toLowerCase();
+    const now = new Date();
 
-// Search for a single patient
-router.get("/patients/:patientId", protect, async (req, res) => {
-    try {
-        const patient = await Appointment.findOne({ patientId: req.params.patientId });
-        if (!patient) {
-            return res.status(404).json({ message: "Patient not found" });
-        }
-        res.status(200).json(patient);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching patient", error });
-    }
-});
+    // Find Practitioner doc that corresponds to this user by email
+    const email = String(req.user.email || "").toLowerCase().trim();
+    const practitioner = await Practitioner.findOne({ email });
 
-// Search for a single appointment
-router.get("/appointments/:appointmentId", protect, async (req, res) => {
-    try {
-        const appointment = await Appointment.findById(req.params.appointmentId);
-        if (!appointment) {
-            return res.status(404).json({ message: "Appointment not found" });
-        }
-        res.status(200).json(appointment);
-    } catch (error) {
-        res.status(500).json({ message: "Error fetching appointment", error });
+    if (!practitioner) {
+      return res.status(404).json({ message: "Practitioner profile not found" });
     }
+
+    const baseQuery = { practitionerId: practitioner._id };
+
+    const query =
+      range === "past"
+        ? { ...baseQuery, endAt: { $lt: now } }
+        : { ...baseQuery, startAt: { $gte: now } };
+
+    const sort = range === "past" ? { startAt: -1 } : { startAt: 1 };
+
+    const appts = await Appointment.find(query)
+      .populate("patientId", "firstName lastName fullName email") // from User
+      .select("-__v")
+      .sort(sort);
+
+    res.json(appts);
+  } catch (error) {
+    console.error("Error fetching practitioner appointments:", error);
+    res.status(500).json({ message: "Error fetching practitioner appointments" });
+  }
 });
 
 export default router;

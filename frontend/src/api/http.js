@@ -1,14 +1,25 @@
-//frontend/src/api/http.js
 import axios from "axios";
 
+const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+
+console.log("🔥 API Base URL:", baseURL);
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "/", // let Vite proxy handle it in dev
+  baseURL, // NO /api here
+  headers: {
+    "Content-Type": "application/json",
+  },
 });
 
+// Attach token automatically
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
   return config;
 });
 
 export default api;
+
+

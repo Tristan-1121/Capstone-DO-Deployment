@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createAppointment } from "../../api/appointments";
+import { getPractitioners } from "../../api/practitioners"; // NEW
 
 // Convert "HH:mm" to readable time like "10:30 AM"
 function humanTime(hhmm) {
@@ -17,6 +18,9 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
+  const [practitioners, setPractitioners] = useState([]);      // NEW
+  const [practitionerId, setPractitionerId] = useState("");    // NEW
+
   // ESC close
   useEffect(() => {
     if (!open) return;
@@ -24,6 +28,24 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
+
+  // Load practitioners when the modal opens
+  useEffect(() => {
+    if (!open) return;
+
+    setError("");
+    setPractitionerId("");
+
+    (async () => {
+      try {
+        const list = await getPractitioners();
+        setPractitioners(list || []);
+      } catch (err) {
+        console.error("Failed to load practitioners", err);
+        setError("Unable to load practitioners. Please try again.");
+      }
+    })();
+  }, [open]);
 
   // Close on clicking outside
   const overlayRef = useRef(null);
@@ -41,6 +63,12 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
+
+    if (!practitionerId) {
+      setError("Please select a practitioner.");
+      return;
+    }
+
     setSubmitting(true);
     try {
       const [hh, mm] = time.split(":").map(Number);
@@ -55,6 +83,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
         timeEnd: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
         type,
         reason,
+        practitionerId, // NEW
       };
 
       const created = await createAppointment(payload);
@@ -135,6 +164,24 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
+            {/* NEW: Practitioner select */}
+            <div>
+              <label className="block text-sm mb-1">Practitioner *</label>
+              <select
+                className="w-full border rounded px-3 py-2"
+                value={practitionerId}
+                onChange={(e) => setPractitionerId(e.target.value)}
+                required
+              >
+                <option value="">Select practitioner</option>
+                {practitioners.map((p) => (
+                  <option key={p._id} value={p._id}>
+                    {p.fullName || `${p.firstName} ${p.lastName}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+
             <div className="md:col-span-2">
               <label className="block text-sm mb-1">Reason *</label>
               <textarea
@@ -148,10 +195,17 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
           </div>
 
           <div className="pt-2 flex items-center justify-end gap-3 border-t">
-            <button type="button" onClick={onClose} className="px-4 py-2 rounded border hover:bg-gray-50">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded border hover:bg-gray-50"
+            >
               Cancel
             </button>
-            <button disabled={submitting} className="px-4 py-2 rounded text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300">
+            <button
+              disabled={submitting}
+              className="px-4 py-2 rounded text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
+            >
               {submitting ? "Saving…" : "Confirm Appointment"}
             </button>
           </div>
