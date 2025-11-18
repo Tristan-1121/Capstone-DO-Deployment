@@ -8,7 +8,7 @@ import patientRoutes from './routes/patient.js';
 import appointmentRoutes from './routes/appointment.js';
 import practitionerRoutes from './routes/practitioner.js';
 import notesRoutes from "./routes/notes.js"
-import callbackRoutes from "./routes/callback.js"
+import callbackRoutes from "./routes/callback.js";
 import { connectDB } from './config/db.js';
 import { seedPractitioners } from './seed.js';
 

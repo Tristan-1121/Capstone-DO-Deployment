@@ -32,7 +32,6 @@ import NotFound from "./components/NotFound.jsx";
 export default function App() {
   return (
     <AuthProvider>
-      <PatientProvider>
         <BrowserRouter>
           <Routes>
             {/* Public */}
@@ -89,7 +88,6 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
-      </PatientProvider>
     </AuthProvider>
   );
 }

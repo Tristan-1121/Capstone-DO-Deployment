@@ -99,6 +99,22 @@ router.post("/", protect, async (req, res) => {
   }
 });
 
+  // Get ALL notes for a specific patient
+  router.get("/patient/:patientId", protect, async (req, res) => {
+    try {
+      const { patientId } = req.params;
+
+      const notes = await Note.find({ patientId })
+        .populate("practitionerId", "firstName lastName email")
+        .populate("appointmentId")
+        .sort({ createdAt: -1 });
+
+      res.json(notes);
+    } catch (err) {
+      console.error("Error fetching patient notes:", err);
+      res.status(500).json({ message: "Failed to load notes." });
+    }
+  });
 export default router;
 
 

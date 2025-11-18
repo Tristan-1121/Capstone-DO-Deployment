@@ -12,3 +12,9 @@ export async function saveNote(payload) {
   const res = await api.post(`/api/notes`, payload);
   return res.data;
 }
+
+// Fetch all notes for a patient
+export async function getNotesForPatient(patientId) {
+  const res = await api.get(`/api/notes/patient/${patientId}`);
+  return res.data;
+}
