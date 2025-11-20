@@ -12,3 +12,4 @@ export async function saveNote(payload) {
   const res = await api.post(`/api/notes`, payload);
   return res.data;
 }
+
