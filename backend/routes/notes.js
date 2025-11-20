@@ -92,6 +92,21 @@ router.post("/", protect, async (req, res) => {
       await CallBack.create(callbackData);
     }
 
+    // -----------------------------
+    // ⭐ GET PRACTITONER DASHBOARD (used by navigate in front end)
+    // -----------------------------
+    router.get("/api/practitioners", protect, async (req, res) => {
+      try {
+        const practitioners = await Practitioner.find({ _id: practitionerId }); // Fetch specific practitioner
+        res.redirect("/api/practitioners");
+        res.json(practitioners);
+      } catch (err) {
+        console.error("❌ Error loading practitioners dashboard:", err);
+        res.status(500).json({ message: "Failed to load practitioners dashboard" });
+      }
+    });
+    
+
     res.json({ message: "Saved successfully", note });
   } catch (err) {
     console.error("❌ Error saving note:", err);

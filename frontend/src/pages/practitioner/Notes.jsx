@@ -1,12 +1,13 @@
 // frontend/src/pages/practitioner/Notes.jsx
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getNote, saveNote } from "../../api/notes";
 import { useAuth } from "../../context/AuthContext";
 
 export default function NotesPage() {
   const { appointmentId } = useParams();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,7 +67,7 @@ export default function NotesPage() {
       };
 
       await saveNote(payload);
-      alert("Notes saved!");
+      navigate("/practitioner/dashboard");
     } catch (err) {
       console.error(err);
       setError("Failed to save notes.");
