@@ -47,7 +47,7 @@ router.post("/", protect, async (req, res) => {
       return res.status(400).json({ message: "Missing required fields" });
     }
 
-    // Get appointment for patient reference if not passed
+    // Pull patientId from appointment if not passed
     let finalPatientId = patientId;
     if (!finalPatientId) {
       const appt = await Appointment.findById(appointmentId);
@@ -57,9 +57,7 @@ router.post("/", protect, async (req, res) => {
       finalPatientId = appt.patientId;
     }
 
-    // -----------------------------
     // ⭐ SAVE SOAP NOTE
-    // -----------------------------
     const noteData = {
       appointmentId,
       practitionerId,
@@ -76,9 +74,7 @@ router.post("/", protect, async (req, res) => {
       { upsert: true, new: true }
     );
 
-    // -----------------------------
     // ⭐ SAVE CALLBACK (if provided)
-    // -----------------------------
     if (callback && callback.reason) {
       const callbackData = {
         patient: finalPatientId,
@@ -92,70 +88,39 @@ router.post("/", protect, async (req, res) => {
       await CallBack.create(callbackData);
     }
 
-    // -----------------------------
-    // ⭐ GET PRACTITONER DASHBOARD (used by navigate in front end)
-    // -----------------------------
-    router.get("/api/practitioners", protect, async (req, res) => {
-      try {
-        const practitioners = await Practitioner.find({ _id: practitionerId }); // Fetch specific practitioner
-        res.redirect("/api/practitioners");
-        res.json(practitioners);
-      } catch (err) {
-        console.error("❌ Error loading practitioners dashboard:", err);
-        res.status(500).json({ message: "Failed to load practitioners dashboard" });
-      }
+    // ⭐ MARK APPOINTMENT AS COMPLETED
+    await Appointment.findByIdAndUpdate(appointmentId, {
+      status: "completed",
+      completedAt: new Date(),
     });
-    
 
     res.json({ message: "Saved successfully", note });
+
   } catch (err) {
     console.error("❌ Error saving note:", err);
     res.status(500).json({ message: "Failed to save note" });
   }
 });
 
-// -----------------------------
-// ADD PRESCRIPTION TO A PATIENT
-// -----------------------------
 
-router.post("/prescriptions", protect, async (req, res) => {
+// -----------------------------
+// GET ALL notes for a patient
+// -----------------------------
+router.get("/patient/:patientId", protect, async (req, res) => {
   try {
-    const { patientId, medicationName, dosage, frequency } = req.body;
-    if (!patientId || !medicationName || !dosage || !frequency) {
-      return res.status(400).json({ message: "Missing required fields" });
-    }
-    const patient = await Patient.findById(patientId);
-    if (!patient) {
-      return res.status(404).json({ message: "Patient not found" });
-    }
-    const newPrescription = {
-      medicationName,
-      dosage,
-      frequency,
-    };
-    patient.Prescriptions.push(newPrescription);
-    await patient.save();
-    res.status(201).json({ message: "Prescription added", prescription: newPrescription });
+    const { patientId } = req.params;
+
+    const notes = await Note.find({ patientId })
+      .populate("practitionerId", "firstName lastName email")
+      .populate("appointmentId")
+      .sort({ createdAt: -1 });
+
+    res.json(notes);
   } catch (err) {
-    console.error("❌ Error adding prescription:", err);
-    res.status(500).json({ message: "Failed to add prescription" });
+    console.error("Error fetching patient notes:", err);
+    res.status(500).json({ message: "Failed to load notes." });
   }
 });
 
-  // Get ALL notes for a specific patient
-  router.get("/patient/:patientId", protect, async (req, res) => {
-    try {
-      const { patientId } = req.params;
-
-      const notes = await Note.find({ patientId })
-        .populate("practitionerId", "firstName lastName email")
-        .populate("appointmentId")
-        .sort({ createdAt: -1 });
-
-      res.json(notes);
-    } catch (err) {
-      console.error("Error fetching patient notes:", err);
-      res.status(500).json({ message: "Failed to load notes." });
-    }
-  });
 export default router;
+

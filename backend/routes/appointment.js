@@ -28,20 +28,32 @@ router.get("/me", protect, async (req, res) => {
     const range = (req.query.range || "upcoming").toLowerCase();
     const now = new Date();
 
-    const query =
-      range === "past"
-        ? { patientId: req.user._id, endAt: { $lt: now } }
-        : { patientId: req.user._id, startAt: { $gte: now } };
+    let query = { patientId: req.user._id };
+
+    if (range === "past") {
+      query.$or = [
+        { status: { $in: ["completed", "canceled"] } }, // always show completed/canceled
+        { endAt: { $lt: now } }, // already happened
+      ];
+    } else {
+      // UPCOMING = scheduled future appointments only
+      query.status = "scheduled"; // strictly scheduled only
+      query.startAt = { $gte: now };
+    }
 
     const sort = range === "past" ? { startAt: -1 } : { startAt: 1 };
 
-    const items = await Appointment.find(query).select("-__v").sort(sort);
+    const items = await Appointment.find(query)
+      .populate("practitionerId", "firstName lastName email role")
+      .select("-__v")
+      .sort(sort);
 
     res.json(items);
   } catch (e) {
     res.status(500).json({ message: e.message || "Server error" });
   }
 });
+
 
 // GET /api/appointments/:id (patient can see their appointment)
 router.get("/:id", protect, async (req, res) => {
@@ -179,5 +191,62 @@ router.delete("/:id", protect, async (req, res) => {
       .json({ message: e.message || "Could not delete appointment" });
   }
 });
+
+// GET /api/appointments/practitioner/all
+router.get("/practitioner/all", protect, async (req, res) => {
+  try {
+    const practitioner = await Practitioner.findOne({
+      email: req.user.email.toLowerCase(),
+    });
+
+    if (!practitioner) {
+      return res.status(404).json({ message: "Practitioner not found" });
+    }
+
+    const items = await Appointment.find({
+      practitionerId: practitioner._id,
+      status: "scheduled", // only active scheduled appointments
+    })
+      .populate("patientId", "firstName lastName email")
+      .sort({ startAt: 1 });
+
+    res.json(items);
+  } catch (err) {
+    console.error("Practitioner appointment fetch error:", err);
+    res.status(500).json({ message: err.message || "Server error" });
+  }
+});
+
+// GET /api/appointments/practitioner/past
+router.get("/practitioner/past", protect, async (req, res) => {
+  try {
+    const practitioner = await Practitioner.findOne({
+      email: req.user.email.toLowerCase(),
+    });
+
+    if (!practitioner) {
+      return res.status(404).json({ message: "Practitioner not found" });
+    }
+
+    const now = new Date();
+
+    const items = await Appointment.find({
+      practitionerId: practitioner._id,
+      $or: [
+        { status: { $in: ["completed", "canceled"] } },
+        { endAt: { $lt: now } },
+      ],
+    })
+      .populate("patientId", "firstName lastName email")
+      .sort({ startAt: -1 });
+
+    res.json(items);
+  } catch (err) {
+    console.error("Practitioner past appt error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
 
 export default router;

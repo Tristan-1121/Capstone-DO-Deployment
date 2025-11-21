@@ -14,3 +14,21 @@ export async function getMyAppointmentsAsPractitioner(range = "upcoming") {
   });
   return data;
 }
+
+export async function getMyPatients() {
+  const res = await api.get("/api/practitioners/me/patients");
+  return res.data;
+}
+
+// ACTIVE upcoming appointments for practitioner
+export async function getMyAppointmentsAsPractitionerActive() {
+  const res = await api.get("/api/appointments/practitioner/all");
+  return res.data;
+}
+
+// PAST appointments for practitioner
+export async function getMyPastAppointmentsAsPractitioner() {
+  const res = await api.get("/api/appointments/practitioner/past");
+  return res.data;
+}
+

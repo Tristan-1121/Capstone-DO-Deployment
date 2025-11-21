@@ -9,6 +9,18 @@ export async function getMyAppointments(range = "upcoming") {
   return data;
 }
 
+// GET past appointments - practitioner
+export async function getMyPastAppointmentsAsPractitioner() {
+  const res = await api.get("/appointments/practitioner/past");
+  return res.data;
+}
+
+
+export async function getPractitionerAppointments() {
+  const res = await api.get("/api/appointments/practitioner/all");
+  return res.data;
+}
+
 // POST create appointment - patient
 export async function createAppointment(payload) {
   const { data } = await api.post("/api/appointments", payload);

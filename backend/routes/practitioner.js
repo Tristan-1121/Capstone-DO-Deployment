@@ -66,4 +66,34 @@ router.get("/me/appointments", protect, async (req, res) => {
   }
 });
 
+router.get("/me/patients", protect, async (req, res) => {
+  try {
+    if (req.user.role !== "practitioner")
+      return res.status(403).json({ message: "Not authorized" });
+
+    // get the practitioner entry
+    const practitioner = await Practitioner.findOne({ email: req.user.email });
+    if (!practitioner)
+      return res.status(404).json({ message: "Practitioner not found" });
+
+    // find appointments linked to this practitioner
+    const appts = await Appointment.find({
+      practitionerId: practitioner._id,
+    }).populate("patientId", "firstName lastName email");
+
+    // build a unique set of patients
+    const patientMap = new Map();
+    appts.forEach((a) => {
+      if (a.patientId) {
+        patientMap.set(a.patientId._id.toString(), a.patientId);
+      }
+    });
+
+    res.json([...patientMap.values()]);
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;

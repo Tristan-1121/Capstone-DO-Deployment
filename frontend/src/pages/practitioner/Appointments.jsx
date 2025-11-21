@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { getMyAppointmentsAsPractitioner } from "../../api/practitioners";
+import {
+  getMyAppointmentsAsPractitioner,
+  getMyPastAppointmentsAsPractitioner,
+} from "../../api/practitioners";
+
 import {
   deleteAppointment,
   rescheduleAppointment,
@@ -64,21 +68,29 @@ export default function PractitionerAppointments() {
   const [cancelSaving, setCancelSaving] = useState(false);
 
   const loadData = async (currentRange) => {
-    setLoading(true);
-    setError("");
-    try {
-      const data = await getMyAppointmentsAsPractitioner(currentRange);
-      setItems(data || []);
-    } catch (err) {
-      const msg =
-        err?.response?.data?.message ||
-        err.message ||
-        "Failed to load appointments";
-      setError(msg);
-    } finally {
-      setLoading(false);
+  setLoading(true);
+  setError("");
+
+  try {
+    let data;
+
+    if (currentRange === "past") {
+      data = await getMyPastAppointmentsAsPractitioner();
+    } else {
+      data = await getMyAppointmentsAsPractitioner();
     }
-  };
+
+    setItems(data || []);
+  } catch (err) {
+    const msg =
+      err?.response?.data?.message ||
+      err.message ||
+      "Failed to load appointments";
+    setError(msg);
+  } finally {
+    setLoading(false);
+  }
+};
 
   useEffect(() => {
     loadData(range);
