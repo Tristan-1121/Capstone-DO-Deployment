@@ -114,6 +114,32 @@ router.post("/", protect, async (req, res) => {
   }
 });
 
+// -----------------------------
+// ADD PRESCRIPTION TO A PATIENT
+// -----------------------------
+
+router.post("/prescriptions", protect, async (req, res) => {
+  try {
+    const { patientId, medicationName, dosage, frequency } = req.body;
+    if (!patientId || !medicationName || !dosage || !frequency) {
+      return res.status(400).json({ message: "Missing required fields" });
+    }
+    const patient = await Patient.findById(patientId);
+    if (!patient) {
+      return res.status(404).json({ message: "Patient not found" });
+    }
+    const newPrescription = {
+      medicationName,
+      dosage,
+      frequency,
+    };
+    patient.Prescriptions.push(newPrescription);
+    await patient.save();
+    res.status(201).json({ message: "Prescription added", prescription: newPrescription });
+  } catch (err) {
+    console.error("❌ Error adding prescription:", err);
+    res.status(500).json({ message: "Failed to add prescription" });
+  }
+});
+
 export default router;
-
-

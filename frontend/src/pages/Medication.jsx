@@ -6,9 +6,15 @@ export default function Medication() {
 
   useEffect(() => {
     setMeds([
-      { id: "m1", name: "Lisinopril", dose: "10 mg", schedule: "Once daily", prescribedBy: "Dr. Emily Carter", active: true },
-      { id: "m2", name: "Cetirizine", dose: "10 mg", schedule: "PRN", prescribedBy: "Dr. Nguyen", active: false },
+      //{ id: "m1", name: "Lisinopril", dose: "10 mg", schedule: "Once daily", prescribedBy: "Dr. Emily Carter", active: true },
+      //{ id: "m2", name: "Cetirizine", dose: "10 mg", schedule: "PRN", prescribedBy: "Dr. Nguyen", active: false },
+      
     ]);
+    //Use Route from patient.js to get prescriptions
+    fetch("/api/patients/me/prescriptions")
+      .then((response) => response.json())
+      .then((data) => setMeds(data))
+      .catch((error) => console.error("Error fetching prescriptions:", error));
   }, []);
 
   return (
