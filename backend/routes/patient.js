@@ -1,6 +1,7 @@
 import express from "express";
 import { protect } from "../middleware/auth.js";
 import Patient from "../models/Patient.js";
+import prescriptions from "../models/prescriptions.js";
 
 const router = express.Router();
 
@@ -53,6 +54,25 @@ router.put("/me", protect, async (req, res) => {
   } catch (err) {
     console.error("❌ PUT /api/patients/me error:", err);
     res.status(500).json({ message: "Server error updating patient" });
+  }
+});
+
+// ---------------------
+// GET ALL PRESCRIBED MEDICATIONS
+// ---------------------
+router.get("/me/prescriptions", protect, async (req, res) => {
+  try {
+    const patient = await Patient.findOne({ user: req.user._id }).select(
+      "Prescriptions"
+    );
+    if (!patient) {
+      return res.status(404).json({ message: "Patient record not found" });
+    }
+
+    res.status(200).json(patient.Prescriptions);
+  } catch (err) {
+    console.error("❌ GET /api/patients/me/prescriptions error:", err);
+    res.status(500).json({ message: "Server error fetching prescriptions" });
   }
 });
 
