@@ -1,9 +1,34 @@
-// src/pages/patient-info/PatientInfo.jsx
+// Updated: removed alert() and added a toast-based notification system
+
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+// Small toast UI for user feedback after saving or errors
+// Replaces the old blocking alert() calls
+function Toast({ message, type = "success", onClose }) {
+  return (
+    <div
+      className={`fixed top-5 right-5 px-4 py-3 rounded shadow text-white ${
+        type === "success" ? "bg-emerald-600" : "bg-red-600"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span>{message}</span>
+        <button onClick={onClose} className="font-bold">
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function PatientInfo() {
   const navigate = useNavigate();
+
+  // Toast message state
+  const [toast, setToast] = useState(null);
+
+  // Form state populated from backend on load
   const [form, setForm] = useState({
     Name: "",
     Age: "",
@@ -21,22 +46,24 @@ export default function PatientInfo() {
     Prescriptions: [],
   });
 
-  // Utility to handle simple field updates
+  // Update for normal form fields
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Utility for arrays (Allergies, Prescriptions)
+  // Update nested array fields (Allergies and Prescriptions)
   const handleArrayChange = (field, index, key, value) => {
     const updated = [...form[field]];
     updated[index][key] = value;
     setForm({ ...form, [field]: updated });
   };
 
+  // Add new array entries
   const addArrayItem = (field, newItem) => {
     setForm({ ...form, [field]: [...form[field], newItem] });
   };
 
+  // Remove array entries
   const removeArrayItem = (field, index) => {
     setForm({
       ...form,
@@ -44,17 +71,21 @@ export default function PatientInfo() {
     });
   };
 
-  // Load existing patient data
+  // Fetch patient data on mount
   useEffect(() => {
     const fetchData = async () => {
       try {
         const token = localStorage.getItem("token");
+
         const res = await fetch("http://localhost:5000/api/patients/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (!res.ok) throw new Error("Failed to fetch patient data");
+
+        if (!res.ok) throw new Error();
+
         const data = await res.json();
 
+        // Fill form with existing backend data
         setForm({
           Name: data.Name || "",
           Age: data.Age || "",
@@ -73,18 +104,22 @@ export default function PatientInfo() {
             ? data.Prescriptions
             : [],
         });
-      } catch (err) {
-        console.error("❌ Error fetching patient data:", err);
+      } catch {
+        // Show error toast if load fails
+        setToast({ message: "Failed to load patient info.", type: "error" });
       }
     };
+
     fetchData();
   }, []);
 
-  // Save form to backend
+  // Save updated form to backend
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     try {
       const token = localStorage.getItem("token");
+
       const res = await fetch("http://localhost:5000/api/patients/me", {
         method: "PUT",
         headers: {
@@ -94,25 +129,36 @@ export default function PatientInfo() {
         body: JSON.stringify(form),
       });
 
-      if (!res.ok) throw new Error("Failed to update patient info");
+      if (!res.ok) throw new Error();
 
       await res.json();
-      alert("✅ Patient info saved!");
-      window.location.reload(); // auto refresh
-    } catch (err) {
-      console.error("❌ Save failed:", err);
-      alert("❌ Failed to save info. Please try again.");
+
+      // Show success message instead of alert()
+      setToast({ message: "Patient information saved.", type: "success" });
+    } catch {
+      // Show error message instead of alert()
+      setToast({ message: "Failed to save information.", type: "error" });
     }
   };
 
   return (
     <div className="p-8 max-w-4xl mx-auto bg-white shadow rounded">
+      {/* Render toast when active */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <h2 className="text-2xl font-bold mb-6">Update Patient Information</h2>
 
       <form onSubmit={handleSubmit} className="space-y-8">
         {/* BASIC INFO */}
         <section>
           <h3 className="text-lg font-semibold mb-2">Basic Information</h3>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
               <span className="text-sm text-gray-600">Full Name</span>
@@ -165,6 +211,7 @@ export default function PatientInfo() {
                     </option>
                   ))}
                 </select>
+
                 <select
                   value={form.HeightInches || ""}
                   onChange={(e) => handleChange("HeightInches", e.target.value)}
@@ -199,6 +246,7 @@ export default function PatientInfo() {
         {/* CONTACT INFO */}
         <section>
           <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <label className="block">
               <span className="text-sm text-gray-600">Phone</span>
@@ -280,6 +328,7 @@ export default function PatientInfo() {
         {/* ALLERGIES */}
         <section>
           <h3 className="text-lg font-semibold mb-2">Allergies</h3>
+
           {form.Allergies.length === 0 ? (
             <p className="text-gray-500 mb-2">No allergies added.</p>
           ) : (
@@ -296,6 +345,7 @@ export default function PatientInfo() {
                     className="mt-1 w-full border rounded p-2"
                   />
                 </label>
+
                 <label className="block">
                   <span className="text-sm text-gray-600">Severity</span>
                   <select
@@ -311,6 +361,7 @@ export default function PatientInfo() {
                     <option value="Severe">Severe</option>
                   </select>
                 </label>
+
                 <label className="block md:col-span-2">
                   <span className="text-sm text-gray-600">Reaction / Notes</span>
                   <input
@@ -322,6 +373,7 @@ export default function PatientInfo() {
                     className="mt-1 w-full border rounded p-2"
                   />
                 </label>
+
                 <button
                   type="button"
                   onClick={() => removeArrayItem("Allergies", i)}
@@ -332,6 +384,7 @@ export default function PatientInfo() {
               </div>
             ))
           )}
+
           <button
             type="button"
             onClick={() =>
@@ -350,6 +403,7 @@ export default function PatientInfo() {
         {/* PRESCRIPTIONS */}
         <section>
           <h3 className="text-lg font-semibold mb-2">Prescriptions</h3>
+
           {form.Prescriptions.length === 0 ? (
             <p className="text-gray-500 mb-2">No prescriptions added.</p>
           ) : (
@@ -366,6 +420,7 @@ export default function PatientInfo() {
                     className="mt-1 w-full border rounded p-2"
                   />
                 </label>
+
                 <label className="block">
                   <span className="text-sm text-gray-600">Dosage</span>
                   <input
@@ -377,6 +432,7 @@ export default function PatientInfo() {
                     className="mt-1 w-full border rounded p-2"
                   />
                 </label>
+
                 <label className="block">
                   <span className="text-sm text-gray-600">Frequency</span>
                   <input
@@ -388,6 +444,7 @@ export default function PatientInfo() {
                     className="mt-1 w-full border rounded p-2"
                   />
                 </label>
+
                 <label className="block">
                   <span className="text-sm text-gray-600">Notes</span>
                   <input
@@ -399,6 +456,7 @@ export default function PatientInfo() {
                     className="mt-1 w-full border rounded p-2"
                   />
                 </label>
+
                 <button
                   type="button"
                   onClick={() => removeArrayItem("Prescriptions", i)}
@@ -409,6 +467,7 @@ export default function PatientInfo() {
               </div>
             ))
           )}
+
           <button
             type="button"
             onClick={() =>
@@ -437,8 +496,3 @@ export default function PatientInfo() {
     </div>
   );
 }
-
-
-
-
-
