@@ -1,7 +1,14 @@
 // frontend/src/api/appointments.js
+// Centralized API for patient + practitioner appointment operations.
+// Updated so endpoints match the corrected backend and populate works immediately.
+
 import api from "./http";
 
-// GET my appointments (upcoming | past) - patient
+// =============================
+// PATIENT ENDPOINTS
+// =============================
+
+// Get patient appointments (upcoming or past)
 export async function getMyAppointments(range = "upcoming") {
   const { data } = await api.get(`/api/appointments/me`, {
     params: { range },
@@ -9,37 +16,25 @@ export async function getMyAppointments(range = "upcoming") {
   return data;
 }
 
-// GET past appointments - practitioner
-export async function getMyPastAppointmentsAsPractitioner() {
-  const res = await api.get("/appointments/practitioner/past");
-  return res.data;
-}
-
-
-export async function getPractitionerAppointments() {
-  const res = await api.get("/api/appointments/practitioner/all");
-  return res.data;
-}
-
-// POST create appointment - patient
+// Create new appointment as patient
 export async function createAppointment(payload) {
   const { data } = await api.post("/api/appointments", payload);
   return data;
 }
 
-// GET by id
+// Get specific appointment (patient)
 export async function getAppointmentById(id) {
   const { data } = await api.get(`/api/appointments/${id}`);
   return data;
 }
 
-// DELETE by id (patient or practitioner, backend enforces authorization)
+// Delete appointment (patient or practitioner)
 export async function deleteAppointment(id) {
   const { data } = await api.delete(`/api/appointments/${id}`);
   return data;
 }
 
-// PATCH reschedule (patient or practitioner)
+// Reschedule appointment (patient or practitioner)
 export async function rescheduleAppointment(id, payload) {
   const { data } = await api.patch(
     `/api/appointments/${id}/reschedule`,
@@ -47,3 +42,29 @@ export async function rescheduleAppointment(id, payload) {
   );
   return data;
 }
+
+// =============================
+// PRACTITIONER ENDPOINTS
+// =============================
+
+// FIXED: this was missing `/api` before
+export async function getMyPastAppointmentsAsPractitioner() {
+  const res = await api.get("/api/appointments/practitioner/past");
+  return res.data;
+}
+
+// Get all upcoming practitioner appointments
+export async function getPractitionerAppointments() {
+  const res = await api.get("/api/appointments/practitioner/all");
+  return res.data;
+}
+
+export default {
+  getMyAppointments,
+  createAppointment,
+  getAppointmentById,
+  deleteAppointment,
+  rescheduleAppointment,
+  getMyPastAppointmentsAsPractitioner,
+  getPractitionerAppointments,
+};
