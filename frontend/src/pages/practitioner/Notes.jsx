@@ -1,18 +1,42 @@
-// frontend/src/pages/practitioner/Notes.jsx
+// Updated: removed alert() and added a toast-based notification system
+
 import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useParams } from "react-router-dom";
 import { getNote, saveNote } from "../../api/notes";
 import { useAuth } from "../../context/AuthContext";
+
+// Toast component to display success or error messages
+// Provides a cleaner UX compared to alert()
+function Toast({ message, type = "success", onClose }) {
+  return (
+    <div
+      className={`fixed top-5 right-5 px-4 py-3 rounded shadow text-white ${
+        type === "success" ? "bg-emerald-600" : "bg-red-600"
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span>{message}</span>
+        <button onClick={onClose} className="font-bold">
+          ×
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export default function NotesPage() {
   const { appointmentId } = useParams();
   const { user } = useAuth();
-  const navigate = useNavigate();
 
+  // Toast for showing notifications
+  const [toast, setToast] = useState(null);
+
+  // Basic state for loading, saving, and capturing errors
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
+  // Note structure: SOAP format + optional callback info
   const [note, setNote] = useState({
     subjective: "",
     objective: "",
@@ -25,13 +49,13 @@ export default function NotesPage() {
     },
   });
 
-  // Load the note when page opens
+  // Load note when component mounts
   useEffect(() => {
-    (async () => {
+    const loadNote = async () => {
       try {
-        setLoading(true);
         const data = await getNote(appointmentId);
 
+        // Populate form with existing data if found
         if (data) {
           setNote({
             subjective: data.subjective || "",
@@ -45,15 +69,17 @@ export default function NotesPage() {
             },
           });
         }
-      } catch (err) {
-        console.error("Error loading note:", err);
+      } catch {
         setError("Failed to load note.");
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    loadNote();
   }, [appointmentId]);
 
+  // Save updated note back to backend
   const handleSave = async () => {
     try {
       setSaving(true);
@@ -62,24 +88,29 @@ export default function NotesPage() {
       const payload = {
         appointmentId,
         practitionerId: user.id,
-        patientId: note.patientId || undefined, // backend ignores if not used
         ...note,
       };
 
       await saveNote(payload);
-      navigate("/practitioner/dashboard");
-    } catch (err) {
-      console.error(err);
+
+      // Show toast instead of using alert()
+      setToast({ message: "Notes saved.", type: "success" });
+    } catch {
       setError("Failed to save notes.");
+
+      // Show failure toast
+      setToast({ message: "Save failed.", type: "error" });
     } finally {
       setSaving(false);
     }
   };
 
+  // Update simple fields
   const updateField = (field, value) => {
     setNote((prev) => ({ ...prev, [field]: value }));
   };
 
+  // Update callback nested fields
   const updateCallback = (field, value) => {
     setNote((prev) => ({
       ...prev,
@@ -91,6 +122,16 @@ export default function NotesPage() {
 
   return (
     <div className="space-y-6">
+
+      {/* Toast message rendering */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <header>
         <h1 className="text-2xl font-semibold text-gray-900">
           Appointment Notes
@@ -179,7 +220,7 @@ export default function NotesPage() {
         </div>
       </div>
 
-      {/* Actions */}
+      {/* Save button */}
       <div className="flex justify-end">
         <button
           onClick={handleSave}
@@ -192,4 +233,3 @@ export default function NotesPage() {
     </div>
   );
 }
-
