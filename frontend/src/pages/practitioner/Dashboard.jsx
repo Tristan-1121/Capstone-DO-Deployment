@@ -1,9 +1,8 @@
 // frontend/src/pages/practitioner/Dashboard.jsx
 
 import { useEffect, useState } from "react";
-import { getPractitionerAppointments } from "../../api/appointments";
-import { getMyCallbacks } from "../../api/callbacks";
 import api from "../../api/http";
+import { getMyCallbacks } from "../../api/callbacks";
 
 export default function PractitionerDashboard() {
   const [stats, setStats] = useState([
@@ -16,26 +15,17 @@ export default function PractitionerDashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        // 1) Load appointments
-        const appts = await getPractitionerAppointments();
+        // CALL THE CORRECT SUMMARY ENDPOINT
+        const { data: summary } = await api.get("/api/practitioners/me/summary");
 
-        const upcoming = appts.length;
-
-        // Unique patient count
-        const patientIds = [...new Set(appts.map((a) => String(a.patientId)))];
-        const totalPatients = patientIds.length;
-
-        // 2) Load callbacks (pending only)
+        // Load callbacks (pending)
         const callbacks = await getMyCallbacks("pending");
         const callbackCount = callbacks?.length || 0;
-
-        // 3) Active prescriptions (placeholder until feature is added)
-        const activePrescriptions = 0;
 
         setStats([
           {
             label: "Total Patients",
-            value: totalPatients,
+            value: summary.totalPatients,
             caption: "Active in your panel",
           },
           {
@@ -45,12 +35,12 @@ export default function PractitionerDashboard() {
           },
           {
             label: "Upcoming Appointments",
-            value: upcoming,
+            value: summary.upcomingAppointments,
             caption: "Next 7 days",
           },
           {
             label: "Active Prescriptions",
-            value: activePrescriptions,
+            value: 0, // Placeholder
             caption: "Currently prescribed",
           },
         ]);
@@ -93,4 +83,3 @@ export default function PractitionerDashboard() {
     </div>
   );
 }
-
