@@ -10,7 +10,6 @@ const userSchema = new mongoose.Schema(
     username: { type: String, required: true, unique: true, trim: true, lowercase: true },
     email:    { type: String, required: true, unique: true, trim: true, lowercase: true },
 
-    // Enforce password rules at the schema level
     password: {
       type: String,
       required: true,
@@ -21,15 +20,19 @@ const userSchema = new mongoose.Schema(
       },
     },
 
-    // Structured name fields
     firstName: { type: String, trim: true },
     lastName:  { type: String, trim: true },
     fullName:  { type: String, trim: true },
 
-    // Role used for authorization (patient | practitioner | admin)
     role: { type: String, enum: ['patient', 'practitioner', 'admin'], default: 'patient' },
 
-    // Array of medical history tags
+    // NEW: Link to Practitioner record when user is a practitioner
+    practitionerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Practitioner",
+      default: null,
+    },
+
     healthHistory: [{ type: String, trim: true }],
   },
   { timestamps: true }
@@ -46,7 +49,6 @@ userSchema.pre('validate', function (next) {
     this.fullName = [fn, ln].filter(Boolean).join(' ');
   }
 
-  // Default username to the local part of the email
   if (!this.username && this.email) {
     this.username = this.email.split('@')[0];
   }
@@ -54,7 +56,7 @@ userSchema.pre('validate', function (next) {
   next();
 });
 
-// Hash password before storing (only when changed)
+// Hash password only when changed
 userSchema.pre('save', async function (next) {
   if (!this.isModified('password')) return next();
   const salt = await bcrypt.genSalt(10);
@@ -62,7 +64,6 @@ userSchema.pre('save', async function (next) {
   next();
 });
 
-// Compare plain text password with hashed password
 userSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };

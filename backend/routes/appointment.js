@@ -1,3 +1,6 @@
+// backend/routes/appointment.js
+// Handles appointment CRUD + filtering for both patients & practitioners
+
 import express from "express";
 import mongoose from "mongoose";
 import { protect } from "../middleware/auth.js";
@@ -6,23 +9,29 @@ import Practitioner from "../models/Practitioner.js";
 
 const router = express.Router();
 
-// helper: check if current user can modify this appointment
+// Helper: determine if current user can modify appointment
 async function canModifyAppointment(req, appt) {
-  // patient who owns the appointment
+  // Patients can modify their own appointment
   if (String(appt.patientId) === String(req.user._id)) return true;
 
-  // practitioner (or admin) assigned to this appointment
+  // Practitioners can modify appointments assigned to them
   if (req.user.role === "practitioner" || req.user.role === "admin") {
-    const email = String(req.user.email || "").toLowerCase().trim();
-    const practitioner = await Practitioner.findOne({ email });
-    if (!practitioner) return false;
-    if (String(appt.practitionerId) === String(practitioner._id)) return true;
+
+    // --- Updated: use direct practitionerId relationship (no email lookup) ---
+    if (req.user.practitionerId && 
+        String(appt.practitionerId) === String(req.user.practitionerId)) {
+      return true;
+    }
+    // --- End updated section ---
   }
 
   return false;
 }
 
-// GET /api/appointments/me?range=upcoming|past  (patient)
+/**
+ * GET /api/appointments/me?range=upcoming|past
+ * Patient: fetches THEIR appointments
+ */
 router.get("/me", protect, async (req, res) => {
   try {
     const range = (req.query.range || "upcoming").toLowerCase();
@@ -32,19 +41,18 @@ router.get("/me", protect, async (req, res) => {
 
     if (range === "past") {
       query.$or = [
-        { status: { $in: ["completed", "canceled"] } }, // always show completed/canceled
-        { endAt: { $lt: now } }, // already happened
+        { status: { $in: ["completed", "canceled"] } },
+        { endAt: { $lt: now } },
       ];
     } else {
-      // UPCOMING = scheduled future appointments only
-      query.status = "scheduled"; // strictly scheduled only
+      query.status = "scheduled";
       query.startAt = { $gte: now };
     }
 
     const sort = range === "past" ? { startAt: -1 } : { startAt: 1 };
 
     const items = await Appointment.find(query)
-      .populate("practitionerId", "firstName lastName email role")
+      .populate("practitionerId", "firstName lastName email") // ensures practitioner name shows instantly
       .select("-__v")
       .sort(sort);
 
@@ -54,40 +62,40 @@ router.get("/me", protect, async (req, res) => {
   }
 });
 
-
-// GET /api/appointments/:id (patient can see their appointment)
+/**
+ * GET /api/appointments/:id
+ * Patient: return one appointment
+ */
 router.get("/:id", protect, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {
       return res.status(404).json({ message: "Appointment not found" });
     }
+
     const appt = await Appointment.findOne({
       _id: req.params.id,
       patientId: req.user._id,
-    });
+    }).populate("practitionerId", "firstName lastName email");
+
     if (!appt)
       return res.status(404).json({ message: "Appointment not found" });
+
     res.json(appt);
   } catch (e) {
     res.status(500).json({ message: e.message || "Server error" });
   }
 });
 
-// POST /api/appointments  (patient creates)
+/**
+ * POST /api/appointments
+ * Patient creates an appointment
+ */
 router.post("/", protect, async (req, res) => {
   try {
     const { date, timeStart, timeEnd, type, reason, practitionerId } = req.body;
-    if (
-      !date ||
-      !timeStart ||
-      !timeEnd ||
-      !type ||
-      !reason ||
-      !practitionerId
-    ) {
-      return res
-        .status(400)
-        .json({ message: "Missing required fields" });
+
+    if (!date || !timeStart || !timeEnd || !type || !reason || !practitionerId) {
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     if (!mongoose.isValidObjectId(practitionerId)) {
@@ -96,10 +104,11 @@ router.post("/", protect, async (req, res) => {
 
     const startAt = new Date(`${date}T${timeStart}:00`);
     const endAt = new Date(`${date}T${timeEnd}:00`);
+
     if (!(startAt < endAt)) {
-      return res
-        .status(400)
-        .json({ message: "timeEnd must be after timeStart" });
+      return res.status(400).json({
+        message: "timeEnd must be after timeStart",
+      });
     }
 
     const appt = await Appointment.create({
@@ -112,15 +121,22 @@ router.post("/", protect, async (req, res) => {
       reason,
     });
 
-    res.status(201).json(appt);
+    // --- Updated: populate so practitioner name shows immediately after creation ---
+    const populated = await Appointment.findById(appt._id)
+      .populate("practitionerId", "firstName lastName email")
+      .populate("patientId", "firstName lastName email");
+    // --- End updated section ---
+
+    res.status(201).json(populated);
   } catch (e) {
-    res
-      .status(400)
-      .json({ message: e.message || "Could not create appointment" });
+    res.status(400).json({ message: e.message || "Could not create appointment" });
   }
 });
 
-// PATCH /api/appointments/:id/reschedule  (patient or assigned practitioner)
+/**
+ * PATCH /api/appointments/:id/reschedule
+ * Patient OR assigned practitioner can modify
+ */
 router.patch("/:id/reschedule", protect, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -129,15 +145,11 @@ router.patch("/:id/reschedule", protect, async (req, res) => {
 
     const { date, timeStart, timeEnd } = req.body;
     if (!date || !timeStart || !timeEnd) {
-      return res
-        .status(400)
-        .json({ message: "Missing required fields" });
+      return res.status(400).json({ message: "Missing required fields" });
     }
 
     const appt = await Appointment.findById(req.params.id);
-    if (!appt) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
+    if (!appt) return res.status(404).json({ message: "Appointment not found" });
 
     if (!(await canModifyAppointment(req, appt))) {
       return res.status(403).json({ message: "Not authorized" });
@@ -145,10 +157,9 @@ router.patch("/:id/reschedule", protect, async (req, res) => {
 
     const startAt = new Date(`${date}T${timeStart}:00`);
     const endAt = new Date(`${date}T${timeEnd}:00`);
+
     if (!(startAt < endAt)) {
-      return res
-        .status(400)
-        .json({ message: "timeEnd must be after timeStart" });
+      return res.status(400).json({ message: "timeEnd must be after timeStart" });
     }
 
     appt.date = date;
@@ -159,15 +170,19 @@ router.patch("/:id/reschedule", protect, async (req, res) => {
 
     await appt.save();
 
-    res.json(appt);
+    const populated = await Appointment.findById(appt._id)
+      .populate("patientId", "firstName lastName email")
+      .populate("practitionerId", "firstName lastName email");
+
+    res.json(populated);
   } catch (e) {
-    res
-      .status(400)
-      .json({ message: e.message || "Could not reschedule appointment" });
+    res.status(400).json({ message: e.message || "Could not reschedule appointment" });
   }
 });
 
-// DELETE /api/appointments/:id  (patient or assigned practitioner)
+/**
+ * DELETE /api/appointments/:id
+ */
 router.delete("/:id", protect, async (req, res) => {
   try {
     if (!mongoose.isValidObjectId(req.params.id)) {
@@ -175,9 +190,7 @@ router.delete("/:id", protect, async (req, res) => {
     }
 
     const appt = await Appointment.findById(req.params.id);
-    if (!appt) {
-      return res.status(404).json({ message: "Appointment not found" });
-    }
+    if (!appt) return res.status(404).json({ message: "Appointment not found" });
 
     if (!(await canModifyAppointment(req, appt))) {
       return res.status(403).json({ message: "Not authorized" });
@@ -186,28 +199,30 @@ router.delete("/:id", protect, async (req, res) => {
     await appt.deleteOne();
     res.json({ message: "Deleted" });
   } catch (e) {
-    res
-      .status(500)
-      .json({ message: e.message || "Could not delete appointment" });
+    res.status(500).json({ message: e.message || "Could not delete appointment" });
   }
 });
 
-// GET /api/appointments/practitioner/all
+/**
+ * GET /api/appointments/practitioner/all
+ * Practitioner: Active (upcoming) appointments
+ *
+ * --- Updated: use practitionerId, not email ---
+ */
 router.get("/practitioner/all", protect, async (req, res) => {
   try {
-    const practitioner = await Practitioner.findOne({
-      email: req.user.email.toLowerCase(),
-    });
-
-    if (!practitioner) {
-      return res.status(404).json({ message: "Practitioner not found" });
+    const practitionerId = req.user.practitionerId;
+    if (!practitionerId) {
+      return res.status(400).json({ message: "Practitioner account not linked" });
     }
 
     const items = await Appointment.find({
-      practitionerId: practitioner._id,
-      status: "scheduled", // only active scheduled appointments
+      practitionerId,
+      status: "scheduled",
+      startAt: { $gte: new Date() },
     })
-      .populate("patientId", "firstName lastName email")
+      .populate("patientId", "firstName lastName fullName email")
+      .populate("practitionerId", "firstName lastName email")
       .sort({ startAt: 1 });
 
     res.json(items);
@@ -217,27 +232,29 @@ router.get("/practitioner/all", protect, async (req, res) => {
   }
 });
 
-// GET /api/appointments/practitioner/past
+/**
+ * GET /api/appointments/practitioner/past
+ *
+ * --- Updated: use practitionerId, not email ---
+ */
 router.get("/practitioner/past", protect, async (req, res) => {
   try {
-    const practitioner = await Practitioner.findOne({
-      email: req.user.email.toLowerCase(),
-    });
-
-    if (!practitioner) {
-      return res.status(404).json({ message: "Practitioner not found" });
+    const practitionerId = req.user.practitionerId;
+    if (!practitionerId) {
+      return res.status(400).json({ message: "Practitioner account not linked" });
     }
 
     const now = new Date();
 
     const items = await Appointment.find({
-      practitionerId: practitioner._id,
+      practitionerId,
       $or: [
         { status: { $in: ["completed", "canceled"] } },
         { endAt: { $lt: now } },
       ],
     })
-      .populate("patientId", "firstName lastName email")
+      .populate("patientId", "firstName lastName fullName email")
+      .populate("practitionerId", "firstName lastName email")
       .sort({ startAt: -1 });
 
     res.json(items);
@@ -246,7 +263,5 @@ router.get("/practitioner/past", protect, async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
-
-
 
 export default router;

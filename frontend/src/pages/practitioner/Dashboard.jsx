@@ -90,16 +90,6 @@ export default function PractitionerDashboard() {
           </div>
         ))}
       </section>
-
-      <section className="bg-white rounded-lg shadow-sm border border-gray-100 p-4">
-        <h2 className="text-lg font-medium text-gray-900 mb-2">
-          Patient Management
-        </h2>
-        <p className="text-sm text-gray-600">
-          Patient list, callbacks, and visit history will be added here in a
-          future card.
-        </p>
-      </section>
     </div>
   );
 }

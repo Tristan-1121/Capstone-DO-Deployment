@@ -4,10 +4,11 @@ const { Schema } = mongoose;
 
 const callbackSchema = new Schema(
   {
-    // Patient who should be contacted
+    // Patient is actually a User (patients and practitioners are Users)
+    // Updated: ref changed from "Patient" → "User"
     patient: {
       type: Schema.Types.ObjectId,
-      ref: "Patient",
+      ref: "User", // ✔ FIXED
       required: true,
     },
 
@@ -18,26 +19,22 @@ const callbackSchema = new Schema(
       required: true,
     },
 
-    // The reason for the callback
     reason: {
       type: String,
       required: true,
       trim: true,
     },
 
-    // Callback due date (NEW)
     dueDate: {
       type: Date,
     },
 
-    // Urgency level
     priority: {
       type: String,
       enum: ["low", "medium", "high"],
       default: "medium",
     },
 
-    // Board column
     status: {
       type: String,
       enum: ["pending", "in_progress", "resolved"],
@@ -52,4 +49,3 @@ const callbackSchema = new Schema(
 const CallBack = mongoose.model("CallBack", callbackSchema);
 
 export default CallBack;
-

@@ -1,6 +1,5 @@
-// backend/routes/callback.js
 import express from "express";
-import { protect } from "../middleware/auth.js";        // <-- FIXED
+import { protect } from "../middleware/auth.js";
 import CallBack from "../models/CallBack.js";
 
 const router = express.Router();
@@ -8,7 +7,6 @@ const router = express.Router();
 /**
  * GET /api/callbacks/mine
  * Returns all callbacks for the logged-in practitioner.
- * Optional query param: ?status=pending | in_progress | resolved | all
  */
 router.get("/mine", protect, async (req, res) => {
   try {
@@ -20,7 +18,9 @@ router.get("/mine", protect, async (req, res) => {
     }
 
     const callbacks = await CallBack.find(query)
-      .populate("patient", "fullName email")
+      // Updated: populate with correct User fields
+      .populate("patient", "firstName lastName fullName email")
+      .populate("practitioner", "firstName lastName email")
       .sort({ createdAt: -1 });
 
     return res.json(callbacks);
@@ -32,7 +32,6 @@ router.get("/mine", protect, async (req, res) => {
 
 /**
  * PATCH /api/callbacks/:id/status
- * Update the status of a callback
  */
 router.patch("/:id/status", protect, async (req, res) => {
   try {
@@ -47,7 +46,9 @@ router.patch("/:id/status", protect, async (req, res) => {
       { _id: req.params.id, practitioner: req.user._id },
       { status },
       { new: true }
-    );
+    )
+      .populate("patient", "fullName email") // keep consistent
+      .populate("practitioner", "firstName lastName email");
 
     if (!updated) {
       return res.status(404).json({ message: "Callback not found" });

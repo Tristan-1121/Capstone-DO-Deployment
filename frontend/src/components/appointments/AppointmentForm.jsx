@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createAppointment } from "../../api/appointments";
-import { getPractitioners } from "../../api/practitioners"; // NEW
+import { getPractitioners } from "../../api/practitioners";
 
-// Convert "HH:mm" to readable time like "10:30 AM"
+// Convert "HH:mm" into "10:30 AM"
 function humanTime(hhmm) {
   const [h, m] = hhmm.split(":").map(Number);
   const d = new Date();
@@ -18,10 +18,10 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
-  const [practitioners, setPractitioners] = useState([]);      // NEW
-  const [practitionerId, setPractitionerId] = useState("");    // NEW
+  const [practitioners, setPractitioners] = useState([]);
+  const [practitionerId, setPractitionerId] = useState("");
 
-  // ESC close
+  // Close modal on ESC
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose?.();
@@ -29,7 +29,8 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Load practitioners when the modal opens
+  // Load practitioner list when modal opens
+  // Updated: ensures list is available before scheduling sends appointment
   useEffect(() => {
     if (!open) return;
 
@@ -47,7 +48,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
     })();
   }, [open]);
 
-  // Close on clicking outside
+  // Overlay click close
   const overlayRef = useRef(null);
   const onOverlayClick = (e) => {
     if (e.target === overlayRef.current) onClose?.();
@@ -69,12 +70,15 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
       return;
     }
 
-    setSubmitting(true);
     try {
+      setSubmitting(true);
+
+      // Compute end time (30 min appointments)
       const [hh, mm] = time.split(":").map(Number);
       const start = new Date(date);
       start.setHours(hh, mm, 0, 0);
       const end = new Date(start.getTime() + 30 * 60 * 1000);
+
       const pad = (n) => String(n).padStart(2, "0");
 
       const payload = {
@@ -83,12 +87,16 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
         timeEnd: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
         type,
         reason,
-        practitionerId, // NEW
+        practitionerId, // <-- REQUIRED for practitioner linkage
       };
 
       const created = await createAppointment(payload);
+
+      // Updated: ensure immediate reflection in UI (practitioner names appear instantly)
       onCreated?.(created);
+
       onClose?.();
+
     } catch (err) {
       const msg = err?.response?.data?.message || err.message || "Failed to create appointment";
       setError(msg);
@@ -110,7 +118,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
           <h2 className="text-xl font-semibold">Schedule New Appointment</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl leading-none"
+            className="text-gray-500 hover:text-gray-700 text-xl"
             aria-label="Close"
           >
             ×
@@ -121,6 +129,8 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
           {error && <div className="text-red-600 text-sm">{error}</div>}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+            {/* Date */}
             <div>
               <label className="block text-sm mb-1">Select Date *</label>
               <input
@@ -132,6 +142,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               />
             </div>
 
+            {/* Type */}
             <div>
               <label className="block text-sm mb-1">Appointment Type *</label>
               <select
@@ -149,6 +160,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
+            {/* Time */}
             <div>
               <label className="block text-sm mb-1">Time Slot *</label>
               <select
@@ -164,7 +176,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
-            {/* NEW: Practitioner select */}
+            {/* Practitioner */}
             <div>
               <label className="block text-sm mb-1">Practitioner *</label>
               <select
@@ -182,19 +194,19 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
+            {/* Reason */}
             <div className="md:col-span-2">
               <label className="block text-sm mb-1">Reason *</label>
               <textarea
                 className="w-full border rounded px-3 py-2 min-h-[90px]"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
-                placeholder="Brief reason..."
                 required
               />
             </div>
           </div>
 
-          <div className="pt-2 flex items-center justify-end gap-3 border-t">
+          <div className="pt-2 flex justify-end gap-3 border-t">
             <button
               type="button"
               onClick={onClose}
