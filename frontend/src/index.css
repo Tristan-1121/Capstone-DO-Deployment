@@ -2,10 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Subtle, modern surface for auth pages */
+/* Existing background styling */
 .bg-uwf-surface {
   background:
     radial-gradient(80vw 60vh at 10% -10%, rgba(0, 62, 126, 0.06), transparent 60%),
     radial-gradient(60vw 50vh at 110% 10%, rgba(0, 62, 126, 0.05), transparent 60%),
     linear-gradient(#f7f9fc, #f5f7fb);
+}
+
+/* Universal card style - transforms to dark mode */
+.card {
+  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 
+         rounded-lg shadow p-4;
+}
+
+/* Text helpers */
+.text-section-title {
+  @apply text-gray-800 dark:text-gray-100;
+}
+
+.text-section-body {
+  @apply text-gray-700 dark:text-gray-300;
+}
+
+.text-muted {
+  @apply text-gray-500 dark:text-gray-400;
+}
+
+/* Form elements */
+input, select, textarea {
+  @apply bg-white dark:bg-gray-800 
+         border border-gray-300 dark:border-gray-600 
+         text-gray-900 dark:text-gray-100 
+         placeholder-gray-400 dark:placeholder-gray-500 
+         rounded;
 }

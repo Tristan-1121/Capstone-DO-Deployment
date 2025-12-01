@@ -16,4 +16,3 @@ export default function ProfileCard({ profile = {}, onEdit }) {
     </div>
   );
 }
-

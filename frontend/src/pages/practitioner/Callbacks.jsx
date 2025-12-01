@@ -1,4 +1,3 @@
-// frontend/src/pages/practitioner/Callbacks.jsx
 import { useEffect, useState } from "react";
 import {
   getMyCallbacks,
@@ -20,11 +19,11 @@ export default function PractitionerCallbacks() {
   const [updatingId, setUpdatingId] = useState(null);
   const [deletingId, setDeletingId] = useState(null);
 
-  async function loadCallbacks(currentStatus) {
+  async function load(status) {
     try {
       setLoading(true);
       setError("");
-      const data = await getMyCallbacks(currentStatus);
+      const data = await getMyCallbacks(status);
       setCallbacks(Array.isArray(data) ? data : []);
     } catch (err) {
       const msg =
@@ -38,16 +37,15 @@ export default function PractitionerCallbacks() {
   }
 
   useEffect(() => {
-    loadCallbacks(statusFilter);
+    load(statusFilter);
   }, [statusFilter]);
 
   async function handleStatusChange(id, newStatus) {
     try {
       setUpdatingId(id);
       await updateCallbackStatus(id, newStatus);
-      await loadCallbacks(statusFilter);
-    } catch (err) {
-      console.error("Error updating callback:", err);
+      await load(statusFilter);
+    } catch {
       alert("Failed to update callback status.");
     } finally {
       setUpdatingId(null);
@@ -55,15 +53,13 @@ export default function PractitionerCallbacks() {
   }
 
   async function handleDelete(id) {
-    if (!window.confirm("Are you sure you want to delete this callback?")) {
-      return;
-    }
+    if (!window.confirm("Delete this callback?")) return;
+
     try {
       setDeletingId(id);
       await deleteCallback(id);
-      setCallbacks((prev) => prev.filter((cb) => cb._id !== id));
-    } catch (err) {
-      console.error("Error deleting callback:", err);
+      setCallbacks((prev) => prev.filter((c) => c._id !== id));
+    } catch {
       alert("Failed to delete callback.");
     } finally {
       setDeletingId(null);
@@ -71,21 +67,27 @@ export default function PractitionerCallbacks() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 text-gray-900 dark:text-gray-100">
+
+      {/* Header */}
       <header className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-gray-900">
-            Callback List
-          </h1>
-          <p className="text-gray-600 text-sm mt-1">
+          <h1 className="text-2xl font-semibold">Callback List</h1>
+          <p className="text-gray-600 dark:text-gray-300 text-sm mt-1">
             Manage your patient callbacks by status and priority.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-sm text-gray-700">Status:</label>
+          <label className="text-sm text-gray-700 dark:text-gray-300">
+            Status:
+          </label>
+
           <select
-            className="border rounded px-2 py-1 text-sm"
+            className="border rounded px-2 py-1 text-sm 
+                       bg-white dark:bg-gray-800 
+                       border-gray-300 dark:border-gray-600 
+                       text-gray-800 dark:text-gray-200"
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
           >
@@ -100,59 +102,72 @@ export default function PractitionerCallbacks() {
       {error && <p className="text-sm text-red-600">{error}</p>}
 
       {loading ? (
-        <p className="text-sm text-gray-500">Loading callbacks…</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">Loading callbacks…</p>
       ) : callbacks.length === 0 ? (
-        <p className="text-sm text-gray-500">No callbacks found.</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">
+          No callbacks found.
+        </p>
       ) : (
-        <div className="overflow-x-auto bg-white rounded-lg shadow-sm border border-gray-100">
+        <div className="overflow-x-auto bg-white dark:bg-gray-800 
+                        rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
           <table className="min-w-full text-sm">
-            <thead className="bg-gray-50">
+            <thead className="bg-gray-50 dark:bg-gray-700/50">
               <tr>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">
-                  Patient
-                </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">
-                  Reason
-                </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">
-                  Priority
-                </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">
-                  Status
-                </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">
-                  Created
-                </th>
-                <th className="px-4 py-2 text-left font-medium text-gray-700">
-                  Actions
-                </th>
+                {["Patient", "Reason", "Priority", "Status", "Created", "Actions"].map(
+                  (title) => (
+                    <th
+                      key={title}
+                      className="px-4 py-2 text-left font-medium 
+                                 text-gray-700 dark:text-gray-200"
+                    >
+                      {title}
+                    </th>
+                  )
+                )}
               </tr>
             </thead>
+
             <tbody>
               {callbacks.map((cb) => (
-                <tr key={cb._id} className="border-t border-gray-100">
+                <tr key={cb._id} className="border-t dark:border-gray-700">
                   <td className="px-4 py-2">
                     <div className="font-medium">
-                      {cb.patient?.Name ||
-                        cb.patient?.fullName ||
+                      {cb.patient?.fullName ||
+                        cb.patient?.Name ||
                         "Unknown patient"}
                     </div>
-                    <div className="text-xs text-gray-500">
-                      {cb.patient?.Email || cb.patient?.email || ""}
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {cb.patient?.email}
                     </div>
                   </td>
+
                   <td className="px-4 py-2 max-w-xs">
-                    <div className="line-clamp-2">{cb.reason}</div>
+                    <div className="line-clamp-2 text-gray-700 dark:text-gray-300">
+                      {cb.reason}
+                    </div>
                   </td>
-                  <td className="px-4 py-2 capitalize">{cb.priority}</td>
-                  <td className="px-4 py-2">
-                    <span className="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 mr-2">
+
+                  <td className="px-4 py-2 capitalize">
+                    {cb.priority}
+                  </td>
+
+                  <td className="px-4 py-2 space-y-1">
+                    <span
+                      className="inline-flex items-center rounded-full 
+                                 bg-gray-100 dark:bg-gray-700
+                                 px-2 py-0.5 text-xs font-medium 
+                                 text-gray-700 dark:text-gray-300"
+                    >
                       {statusLabels[cb.status] || cb.status}
                     </span>
+
                     <select
-                      className="border rounded px-2 py-1 text-xs"
-                      value={cb.status}
+                      className="border rounded px-2 py-1 text-xs 
+                                 bg-white dark:bg-gray-800 
+                                 border-gray-300 dark:border-gray-600
+                                 text-gray-700 dark:text-gray-200"
                       disabled={updatingId === cb._id}
+                      value={cb.status}
                       onChange={(e) =>
                         handleStatusChange(cb._id, e.target.value)
                       }
@@ -162,17 +177,23 @@ export default function PractitionerCallbacks() {
                       <option value="resolved">Resolved</option>
                     </select>
                   </td>
-                  <td className="px-4 py-2 text-xs text-gray-500">
+
+                  <td className="px-4 py-2 text-xs text-gray-500 dark:text-gray-400">
                     {cb.createdAt
                       ? new Date(cb.createdAt).toLocaleString()
                       : ""}
                   </td>
+
                   <td className="px-4 py-2">
                     <button
                       type="button"
                       onClick={() => handleDelete(cb._id)}
                       disabled={deletingId === cb._id}
-                      className="px-3 py-1 text-xs rounded border border-red-500 text-red-600 hover:bg-red-50 disabled:opacity-60"
+                      className="px-3 py-1 text-xs rounded border 
+                                 border-red-500 text-red-600 
+                                 dark:border-red-400 dark:text-red-400
+                                 hover:bg-red-50 dark:hover:bg-red-900/20 
+                                 disabled:opacity-60"
                     >
                       {deletingId === cb._id ? "Deleting…" : "Delete"}
                     </button>
@@ -186,5 +207,3 @@ export default function PractitionerCallbacks() {
     </div>
   );
 }
-
-

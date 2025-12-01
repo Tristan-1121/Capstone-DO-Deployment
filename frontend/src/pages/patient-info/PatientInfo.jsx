@@ -1,22 +1,17 @@
-// Updated: removed alert() and added a toast-based notification system
-
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-// Small toast UI for user feedback after saving or errors
-// Replaces the old blocking alert() calls
+/* Toast used for success/error notifications */
 function Toast({ message, type = "success", onClose }) {
   return (
     <div
-      className={`fixed top-5 right-5 px-4 py-3 rounded shadow text-white ${
+      className={`fixed top-5 right-5 px-4 py-3 rounded shadow text-white z-50 ${
         type === "success" ? "bg-emerald-600" : "bg-red-600"
       }`}
     >
       <div className="flex items-center gap-3">
         <span>{message}</span>
-        <button onClick={onClose} className="font-bold">
-          ×
-        </button>
+        <button onClick={onClose} className="font-bold">×</button>
       </div>
     </div>
   );
@@ -24,11 +19,8 @@ function Toast({ message, type = "success", onClose }) {
 
 export default function PatientInfo() {
   const navigate = useNavigate();
-
-  // Toast message state
   const [toast, setToast] = useState(null);
 
-  // Form state populated from backend on load
   const [form, setForm] = useState({
     Name: "",
     Age: "",
@@ -46,46 +38,35 @@ export default function PatientInfo() {
     Prescriptions: [],
   });
 
-  // Update for normal form fields
+  /* Helpers */
   const handleChange = (field, value) => {
     setForm((prev) => ({ ...prev, [field]: value }));
   };
 
-  // Update nested array fields (Allergies and Prescriptions)
   const handleArrayChange = (field, index, key, value) => {
     const updated = [...form[field]];
     updated[index][key] = value;
     setForm({ ...form, [field]: updated });
   };
 
-  // Add new array entries
-  const addArrayItem = (field, newItem) => {
-    setForm({ ...form, [field]: [...form[field], newItem] });
-  };
+  const addArrayItem = (field, item) =>
+    setForm({ ...form, [field]: [...form[field], item] });
 
-  // Remove array entries
-  const removeArrayItem = (field, index) => {
-    setForm({
-      ...form,
-      [field]: form[field].filter((_, i) => i !== index),
-    });
-  };
+  const removeArrayItem = (field, index) =>
+    setForm({ ...form, [field]: form[field].filter((_, i) => i !== index) });
 
-  // Fetch patient data on mount
+  /* Load data */
   useEffect(() => {
-    const fetchData = async () => {
+    const load = async () => {
       try {
         const token = localStorage.getItem("token");
-
         const res = await fetch("http://localhost:5000/api/patients/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!res.ok) throw new Error();
-
         const data = await res.json();
 
-        // Fill form with existing backend data
         setForm({
           Name: data.Name || "",
           Age: data.Age || "",
@@ -105,21 +86,18 @@ export default function PatientInfo() {
             : [],
         });
       } catch {
-        // Show error toast if load fails
         setToast({ message: "Failed to load patient info.", type: "error" });
       }
     };
-
-    fetchData();
+    load();
   }, []);
 
-  // Save updated form to backend
+  /* Submit */
   const handleSubmit = async (e) => {
     e.preventDefault();
 
     try {
       const token = localStorage.getItem("token");
-
       const res = await fetch("http://localhost:5000/api/patients/me", {
         method: "PUT",
         headers: {
@@ -130,20 +108,16 @@ export default function PatientInfo() {
       });
 
       if (!res.ok) throw new Error();
-
       await res.json();
 
-      // Show success message instead of alert()
       setToast({ message: "Patient information saved.", type: "success" });
     } catch {
-      // Show error message instead of alert()
       setToast({ message: "Failed to save information.", type: "error" });
     }
   };
 
   return (
-    <div className="p-8 max-w-4xl mx-auto bg-white shadow rounded">
-      {/* Render toast when active */}
+    <div className="card max-w-4xl mx-auto p-8 space-y-8">
       {toast && (
         <Toast
           message={toast.message}
@@ -152,70 +126,67 @@ export default function PatientInfo() {
         />
       )}
 
-      <h2 className="text-2xl font-bold mb-6">Update Patient Information</h2>
+      <h2 className="text-2xl font-bold">Update Patient Information</h2>
 
-      <form onSubmit={handleSubmit} className="space-y-8">
+      <form onSubmit={handleSubmit} className="space-y-10">
+
         {/* BASIC INFO */}
         <section>
-          <h3 className="text-lg font-semibold mb-2">Basic Information</h3>
+          <h3 className="text-xl font-semibold mb-3">Basic Information</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">
-              <span className="text-sm text-gray-600">Full Name</span>
+
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Full Name</span>
               <input
-                type="text"
                 value={form.Name}
                 onChange={(e) => handleChange("Name", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
+                className="mt-1 w-full p-2"
                 placeholder="Tristan Cameron"
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">Age</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Age</span>
               <input
                 type="number"
                 min="0"
                 value={form.Age}
                 onChange={(e) => handleChange("Age", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
+                className="mt-1 w-full p-2"
                 placeholder="25"
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">Weight (lbs)</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Weight (lbs)</span>
               <input
                 type="number"
-                min="0"
-                max="999"
                 value={form.Weight}
                 onChange={(e) => handleChange("Weight", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
+                className="mt-1 w-full p-2"
                 placeholder="180"
               />
             </label>
 
             <div>
-              <span className="text-sm text-gray-600">Height</span>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Height</span>
               <div className="flex gap-2 mt-1">
                 <select
-                  value={form.HeightFeet || ""}
+                  value={form.HeightFeet}
                   onChange={(e) => handleChange("HeightFeet", e.target.value)}
-                  className="border rounded p-2 w-1/2"
+                  className="p-2 w-1/2"
                 >
                   <option value="">Feet</option>
                   {[4, 5, 6, 7].map((ft) => (
-                    <option key={ft} value={ft}>
-                      {ft}
-                    </option>
+                    <option key={ft}>{ft}</option>
                   ))}
                 </select>
 
                 <select
-                  value={form.HeightInches || ""}
+                  value={form.HeightInches}
                   onChange={(e) => handleChange("HeightInches", e.target.value)}
-                  className="border rounded p-2 w-1/2"
+                  className="p-2 w-1/2"
                 >
                   <option value="">Inches</option>
                   {[...Array(12).keys()].map((inch) => (
@@ -227,17 +198,17 @@ export default function PatientInfo() {
               </div>
             </div>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">Sex</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Sex</span>
               <select
                 value={form.Sex}
                 onChange={(e) => handleChange("Sex", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
+                className="mt-1 w-full p-2"
               >
-                <option value="">Select Sex</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-                <option value="Other">Other</option>
+                <option value="">Select</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
               </select>
             </label>
           </div>
@@ -245,81 +216,72 @@ export default function PatientInfo() {
 
         {/* CONTACT INFO */}
         <section>
-          <h3 className="text-lg font-semibold mb-2">Contact Information</h3>
+          <h3 className="text-xl font-semibold mb-3">Contact Information</h3>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <label className="block">
-              <span className="text-sm text-gray-600">Phone</span>
+
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Phone</span>
               <input
-                type="tel"
                 value={form.Phone}
                 onChange={(e) => handleChange("Phone", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
-                placeholder="8509999999"
+                className="mt-1 w-full p-2"
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">Address</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Address</span>
               <input
-                type="text"
                 value={form.Address}
                 onChange={(e) => handleChange("Address", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
-                placeholder="123 Main St"
+                className="mt-1 w-full p-2"
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">City</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">City</span>
               <input
-                type="text"
                 value={form.City}
                 onChange={(e) => handleChange("City", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
-                placeholder="Pensacola"
+                className="mt-1 w-full p-2"
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">State</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">State</span>
               <select
                 value={form.State}
                 onChange={(e) => handleChange("State", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
+                className="mt-1 w-full p-2"
               >
                 <option value="">Select State</option>
+                {/* States list */}
                 {[
                   "AL","AK","AZ","AR","CA","CO","CT","DE","FL","GA","HI","ID","IL","IN","IA","KS",
                   "KY","LA","ME","MD","MA","MI","MN","MS","MO","MT","NE","NV","NH","NJ","NM","NY",
                   "NC","ND","OH","OK","OR","PA","RI","SC","SD","TN","TX","UT","VT","VA","WA","WV","WI","WY"
-                ].map((state) => (
-                  <option key={state} value={state}>
-                    {state}
-                  </option>
+                ].map((st) => (
+                  <option key={st}>{st}</option>
                 ))}
               </select>
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">ZIP Code</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">ZIP</span>
               <input
-                type="text"
                 value={form.Zip}
                 onChange={(e) => handleChange("Zip", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
+                className="mt-1 w-full p-2"
                 placeholder="32514"
               />
             </label>
 
-            <label className="block">
-              <span className="text-sm text-gray-600">Emergency Contact</span>
+            <label>
+              <span className="text-sm text-gray-600 dark:text-gray-300">Emergency Contact</span>
               <input
-                type="text"
                 value={form.EmergencyContact}
                 onChange={(e) => handleChange("EmergencyContact", e.target.value)}
-                className="mt-1 w-full border rounded p-2"
-                placeholder="John Doe"
+                className="mt-1 w-full p-2"
               />
             </label>
           </div>
@@ -327,57 +289,54 @@ export default function PatientInfo() {
 
         {/* ALLERGIES */}
         <section>
-          <h3 className="text-lg font-semibold mb-2">Allergies</h3>
+          <h3 className="text-xl font-semibold mb-3">Allergies</h3>
 
           {form.Allergies.length === 0 ? (
-            <p className="text-gray-500 mb-2">No allergies added.</p>
+            <p className="text-gray-500 dark:text-gray-400">No allergies added.</p>
           ) : (
-            form.Allergies.map((a, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                <label className="block">
-                  <span className="text-sm text-gray-600">Allergen</span>
+            form.Allergies.map((a, idx) => (
+              <div key={idx} className="border dark:border-gray-700 p-4 rounded space-y-2">
+                <label>
+                  <span className="text-sm">Allergen</span>
                   <input
                     value={a.allergen}
                     onChange={(e) =>
-                      handleArrayChange("Allergies", i, "allergen", e.target.value)
+                      handleArrayChange("Allergies", idx, "allergen", e.target.value)
                     }
-                    placeholder="Peanuts"
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   />
                 </label>
 
-                <label className="block">
-                  <span className="text-sm text-gray-600">Severity</span>
+                <label>
+                  <span className="text-sm">Severity</span>
                   <select
                     value={a.severity}
                     onChange={(e) =>
-                      handleArrayChange("Allergies", i, "severity", e.target.value)
+                      handleArrayChange("Allergies", idx, "severity", e.target.value)
                     }
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   >
-                    <option value="">Select Severity</option>
-                    <option value="Mild">Mild</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Severe">Severe</option>
+                    <option>Mild</option>
+                    <option>Moderate</option>
+                    <option>Severe</option>
                   </select>
                 </label>
 
-                <label className="block md:col-span-2">
-                  <span className="text-sm text-gray-600">Reaction / Notes</span>
+                <label>
+                  <span className="text-sm">Reaction / Notes</span>
                   <input
-                    value={a.reaction || ""}
+                    value={a.reaction}
                     onChange={(e) =>
-                      handleArrayChange("Allergies", i, "reaction", e.target.value)
+                      handleArrayChange("Allergies", idx, "reaction", e.target.value)
                     }
-                    placeholder="Sneezing, itching..."
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   />
                 </label>
 
                 <button
                   type="button"
-                  onClick={() => removeArrayItem("Allergies", i)}
-                  className="text-red-600 text-sm hover:underline"
+                  className="text-red-600 dark:text-red-400 text-sm"
+                  onClick={() => removeArrayItem("Allergies", idx)}
                 >
                   🗑 Remove
                 </button>
@@ -394,7 +353,7 @@ export default function PatientInfo() {
                 reaction: "",
               })
             }
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 dark:text-blue-400"
           >
             + Add Another Allergy
           </button>
@@ -402,65 +361,62 @@ export default function PatientInfo() {
 
         {/* PRESCRIPTIONS */}
         <section>
-          <h3 className="text-lg font-semibold mb-2">Prescriptions</h3>
+          <h3 className="text-xl font-semibold mb-3">Prescriptions</h3>
 
           {form.Prescriptions.length === 0 ? (
-            <p className="text-gray-500 mb-2">No prescriptions added.</p>
+            <p className="text-gray-500 dark:text-gray-400">No prescriptions added.</p>
           ) : (
-            form.Prescriptions.map((p, i) => (
-              <div key={i} className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-2">
-                <label className="block">
-                  <span className="text-sm text-gray-600">Medication Name</span>
+            form.Prescriptions.map((p, idx) => (
+              <div key={idx} className="border dark:border-gray-700 p-4 rounded space-y-2">
+
+                <label>
+                  <span className="text-sm">Medication Name</span>
                   <input
                     value={p.medicationName}
                     onChange={(e) =>
-                      handleArrayChange("Prescriptions", i, "medicationName", e.target.value)
+                      handleArrayChange("Prescriptions", idx, "medicationName", e.target.value)
                     }
-                    placeholder="Ibuprofen"
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   />
                 </label>
 
-                <label className="block">
-                  <span className="text-sm text-gray-600">Dosage</span>
+                <label>
+                  <span className="text-sm">Dosage</span>
                   <input
                     value={p.dosage}
                     onChange={(e) =>
-                      handleArrayChange("Prescriptions", i, "dosage", e.target.value)
+                      handleArrayChange("Prescriptions", idx, "dosage", e.target.value)
                     }
-                    placeholder="200mg"
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   />
                 </label>
 
-                <label className="block">
-                  <span className="text-sm text-gray-600">Frequency</span>
+                <label>
+                  <span className="text-sm">Frequency</span>
                   <input
                     value={p.frequency}
                     onChange={(e) =>
-                      handleArrayChange("Prescriptions", i, "frequency", e.target.value)
+                      handleArrayChange("Prescriptions", idx, "frequency", e.target.value)
                     }
-                    placeholder="Twice daily"
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   />
                 </label>
 
-                <label className="block">
-                  <span className="text-sm text-gray-600">Notes</span>
+                <label>
+                  <span className="text-sm">Notes</span>
                   <input
                     value={p.notes}
                     onChange={(e) =>
-                      handleArrayChange("Prescriptions", i, "notes", e.target.value)
+                      handleArrayChange("Prescriptions", idx, "notes", e.target.value)
                     }
-                    placeholder="After meals"
-                    className="mt-1 w-full border rounded p-2"
+                    className="mt-1 w-full p-2"
                   />
                 </label>
 
                 <button
                   type="button"
-                  onClick={() => removeArrayItem("Prescriptions", i)}
-                  className="text-red-600 text-sm hover:underline"
+                  className="text-red-600 dark:text-red-400 text-sm"
+                  onClick={() => removeArrayItem("Prescriptions", idx)}
                 >
                   🗑 Remove
                 </button>
@@ -478,13 +434,13 @@ export default function PatientInfo() {
                 notes: "",
               })
             }
-            className="text-blue-600 hover:underline"
+            className="text-blue-600 dark:text-blue-400"
           >
             + Add Another Prescription
           </button>
         </section>
 
-        <div className="pt-4">
+        <div>
           <button
             type="submit"
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"

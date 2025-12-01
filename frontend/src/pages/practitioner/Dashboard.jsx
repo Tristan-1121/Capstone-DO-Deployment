@@ -15,10 +15,10 @@ export default function PractitionerDashboard() {
   useEffect(() => {
     async function loadStats() {
       try {
-        // CALL THE CORRECT SUMMARY ENDPOINT
-        const { data: summary } = await api.get("/api/practitioners/me/summary");
+        const { data: summary } = await api.get(
+          "/api/practitioners/me/summary"
+        );
 
-        // Load callbacks (pending)
         const callbacks = await getMyCallbacks("pending");
         const callbackCount = callbacks?.length || 0;
 
@@ -40,7 +40,7 @@ export default function PractitionerDashboard() {
           },
           {
             label: "Active Prescriptions",
-            value: 0, // Placeholder
+            value: 0,
             caption: "Currently prescribed",
           },
         ]);
@@ -53,12 +53,10 @@ export default function PractitionerDashboard() {
   }, []);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-gray-900 dark:text-gray-100">
       <header>
-        <h1 className="text-2xl font-semibold text-gray-900">
-          Practitioner Dashboard
-        </h1>
-        <p className="text-gray-600 mt-1">
+        <h1 className="text-2xl font-semibold">Practitioner Dashboard</h1>
+        <p className="text-gray-600 dark:text-gray-300 mt-1">
           Manage your patients and appointments.
         </p>
       </header>
@@ -68,15 +66,21 @@ export default function PractitionerDashboard() {
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="bg-white rounded-lg shadow-sm border border-gray-100 p-4 flex flex-col justify-between"
+            className="bg-white dark:bg-gray-800 
+                       border border-gray-200 dark:border-gray-700
+                       rounded-lg shadow-sm p-4 flex flex-col justify-between"
           >
             <div>
-              <p className="text-sm text-gray-500">{stat.label}</p>
-              <p className="mt-2 text-3xl font-semibold text-[#003E7E]">
+              <p className="text-sm text-gray-500 dark:text-gray-300">
+                {stat.label}
+              </p>
+              <p className="mt-2 text-3xl font-semibold text-[#003E7E] dark:text-emerald-300">
                 {stat.value}
               </p>
             </div>
-            <p className="mt-2 text-xs text-gray-400">{stat.caption}</p>
+            <p className="mt-2 text-xs text-gray-400 dark:text-gray-400">
+              {stat.caption}
+            </p>
           </div>
         ))}
       </section>
