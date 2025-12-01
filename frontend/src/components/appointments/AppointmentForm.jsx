@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef } from "react";
 import { createAppointment } from "../../api/appointments";
 import { getPractitioners } from "../../api/practitioners";
 
-// Convert "HH:mm" into "10:30 AM"
 function humanTime(hhmm) {
   const [h, m] = hhmm.split(":").map(Number);
   const d = new Date();
@@ -21,7 +20,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
   const [practitioners, setPractitioners] = useState([]);
   const [practitionerId, setPractitionerId] = useState("");
 
-  // Close modal on ESC
+  // ESC to close
   useEffect(() => {
     if (!open) return;
     const onKey = (e) => e.key === "Escape" && onClose?.();
@@ -29,8 +28,7 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
     return () => window.removeEventListener("keydown", onKey);
   }, [open, onClose]);
 
-  // Load practitioner list when modal opens
-  // Updated: ensures list is available before scheduling sends appointment
+  // Load practitioners
   useEffect(() => {
     if (!open) return;
 
@@ -42,21 +40,20 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
         const list = await getPractitioners();
         setPractitioners(list || []);
       } catch (err) {
-        console.error("Failed to load practitioners", err);
-        setError("Unable to load practitioners. Please try again.");
+        setError("Unable to load practitioners.");
       }
     })();
   }, [open]);
 
-  // Overlay click close
   const overlayRef = useRef(null);
   const onOverlayClick = (e) => {
     if (e.target === overlayRef.current) onClose?.();
   };
 
   const slots = [
-    "09:00","09:30","10:00","10:30","11:00","11:30",
-    "13:00","13:30","14:00","14:30","15:00","15:30",
+    "09:00", "09:30", "10:00", "10:30",
+    "11:00", "11:30", "13:00", "13:30",
+    "14:00", "14:30", "15:00", "15:30",
   ];
 
   if (!open) return null;
@@ -73,7 +70,6 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
     try {
       setSubmitting(true);
 
-      // Compute end time (30 min appointments)
       const [hh, mm] = time.split(":").map(Number);
       const start = new Date(date);
       start.setHours(hh, mm, 0, 0);
@@ -87,19 +83,15 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
         timeEnd: `${pad(end.getHours())}:${pad(end.getMinutes())}`,
         type,
         reason,
-        practitionerId, // <-- REQUIRED for practitioner linkage
+        practitionerId,
       };
 
       const created = await createAppointment(payload);
-
-      // Updated: ensure immediate reflection in UI (practitioner names appear instantly)
       onCreated?.(created);
-
       onClose?.();
 
     } catch (err) {
-      const msg = err?.response?.data?.message || err.message || "Failed to create appointment";
-      setError(msg);
+      setError(err?.response?.data?.message || "Failed to create appointment");
     } finally {
       setSubmitting(false);
     }
@@ -110,43 +102,45 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
       ref={overlayRef}
       onClick={onOverlayClick}
       className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4"
-      aria-modal="true"
-      role="dialog"
     >
-      <div className="bg-white w-full max-w-lg rounded-lg shadow-xl overflow-hidden">
-        <div className="flex items-center justify-between px-5 py-4 border-b">
+      <div
+        className="
+          bg-white dark:bg-gray-900 
+          dark:text-gray-100 
+          w-full max-w-lg rounded-lg shadow-xl overflow-hidden
+          dark:border dark:border-gray-700
+        "
+      >
+        <div className="flex items-center justify-between px-5 py-4 border-b dark:border-gray-700">
           <h2 className="text-xl font-semibold">Schedule New Appointment</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-xl"
-            aria-label="Close"
+            className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-200 text-xl"
           >
             ×
           </button>
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
-          {error && <div className="text-red-600 text-sm">{error}</div>}
+          {error && <div className="text-red-600 dark:text-red-400 text-sm">{error}</div>}
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
-            {/* Date */}
             <div>
               <label className="block text-sm mb-1">Select Date *</label>
               <input
                 type="date"
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 required
               />
             </div>
 
-            {/* Type */}
             <div>
               <label className="block text-sm mb-1">Appointment Type *</label>
               <select
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 value={type}
                 onChange={(e) => setType(e.target.value)}
                 required
@@ -160,11 +154,10 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
-            {/* Time */}
             <div>
               <label className="block text-sm mb-1">Time Slot *</label>
               <select
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 value={time}
                 onChange={(e) => setTime(e.target.value)}
                 required
@@ -176,11 +169,10 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
-            {/* Practitioner */}
             <div>
               <label className="block text-sm mb-1">Practitioner *</label>
               <select
-                className="w-full border rounded px-3 py-2"
+                className="w-full border rounded px-3 py-2 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 value={practitionerId}
                 onChange={(e) => setPractitionerId(e.target.value)}
                 required
@@ -194,11 +186,10 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
               </select>
             </div>
 
-            {/* Reason */}
             <div className="md:col-span-2">
               <label className="block text-sm mb-1">Reason *</label>
               <textarea
-                className="w-full border rounded px-3 py-2 min-h-[90px]"
+                className="w-full border rounded px-3 py-2 min-h-[90px] dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 required
@@ -206,17 +197,21 @@ export default function AppointmentForm({ open, onClose, onCreated }) {
             </div>
           </div>
 
-          <div className="pt-2 flex justify-end gap-3 border-t">
+          <div className="pt-2 flex justify-end gap-3 border-t dark:border-gray-700">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded border hover:bg-gray-50"
+              className="px-4 py-2 rounded border hover:bg-gray-50 dark:border-gray-600 dark:hover:bg-gray-800"
             >
               Cancel
             </button>
             <button
               disabled={submitting}
-              className="px-4 py-2 rounded text-white bg-emerald-600 hover:bg-emerald-700 disabled:bg-emerald-300"
+              className="
+                px-4 py-2 rounded text-white 
+                bg-emerald-600 hover:bg-emerald-700 
+                disabled:bg-emerald-300
+              "
             >
               {submitting ? "Saving…" : "Confirm Appointment"}
             </button>

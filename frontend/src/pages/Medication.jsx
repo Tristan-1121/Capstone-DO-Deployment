@@ -1,16 +1,9 @@
 import { useEffect, useState } from "react";
 
 export default function Medication() {
-  // placeholder data; replace with API later
   const [meds, setMeds] = useState([]);
 
   useEffect(() => {
-    setMeds([
-      //{ id: "m1", name: "Lisinopril", dose: "10 mg", schedule: "Once daily", prescribedBy: "Dr. Emily Carter", active: true },
-      //{ id: "m2", name: "Cetirizine", dose: "10 mg", schedule: "PRN", prescribedBy: "Dr. Nguyen", active: false },
-      
-    ]);
-    //Use Route from patient.js to get prescriptions
     fetch("/api/patients/me/prescriptions")
       .then((response) => response.json())
       .then((data) => setMeds(data))
@@ -19,19 +12,52 @@ export default function Medication() {
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Medication</h1>
+      <h1 className="text-xl font-semibold dark:text-gray-100">Medication</h1>
 
-      <div className="bg-white border rounded p-4">
+      <div
+        className="
+          bg-white border rounded p-4 shadow-sm
+          dark:bg-gray-800 dark:border-gray-700 dark:text-gray-100
+        "
+      >
         {!meds.length ? (
-          <div className="text-gray-500">No medications on file.</div>
+          <div className="text-gray-500 dark:text-gray-300">
+            No medications on file.
+          </div>
         ) : (
-          <ul className="space-y-2">
+          <ul className="space-y-3">
             {meds.map((m) => (
-              <li key={m.id} className="border rounded p-3">
-                <div className="font-medium">{m.name}</div>
-                <div className="text-sm text-gray-600">{m.dose} — {m.schedule}</div>
-                <div className="text-sm text-gray-600">Prescribed by {m.prescribedBy}</div>
-                <span className={`inline-block mt-2 text-xs px-2 py-0.5 rounded-full ${m.active ? "bg-emerald-100 text-emerald-700" : "bg-gray-100 text-gray-600"}`}>
+              <li
+                key={m.id || m._id}
+                className="
+                  border rounded p-3
+                  bg-gray-50 dark:bg-gray-800
+                  border-gray-200 dark:border-gray-700
+                "
+              >
+                <div className="font-medium text-gray-900 dark:text-gray-100">
+                  {m.medicationName || m.name}
+                </div>
+
+                <div className="text-sm text-gray-600 dark:text-gray-300">
+                  {(m.dose || m.dosage || "-")} — {(m.schedule || m.frequency || "-")}
+                </div>
+
+                {m.prescribedBy && (
+                  <div className="text-sm text-gray-600 dark:text-gray-300">
+                    Prescribed by {m.prescribedBy}
+                  </div>
+                )}
+
+                {/* Status badge */}
+                <span
+                  className={`
+                    inline-block mt-2 text-xs px-2 py-0.5 rounded-full
+                    ${m.active
+                      ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300"
+                      : "bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300"}
+                  `}
+                >
                   {m.active ? "Active" : "Inactive"}
                 </span>
               </li>

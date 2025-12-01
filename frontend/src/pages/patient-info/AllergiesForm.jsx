@@ -1,7 +1,6 @@
 import React from "react";
 
 export default function AllergiesForm({ value = [], onChange }) {
-  // Always ensure `value` is an array
   const allergies = Array.isArray(value) ? value : [];
 
   const handleAdd = () => {
@@ -25,11 +24,11 @@ export default function AllergiesForm({ value = [], onChange }) {
   };
 
   return (
-    <section>
+    <section className="bg-white dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700 border rounded p-4 shadow-sm">
       <h2 className="font-semibold text-lg mb-2">Allergies</h2>
 
       {allergies.length === 0 && (
-        <p className="text-sm text-gray-500 mb-2">
+        <p className="text-sm text-gray-500 dark:text-gray-300 mb-2">
           No allergies listed. Add one below.
         </p>
       )}
@@ -37,30 +36,26 @@ export default function AllergiesForm({ value = [], onChange }) {
       {allergies.map((allergy, index) => (
         <div
           key={index}
-          className="border p-3 mb-3 rounded grid grid-cols-1 sm:grid-cols-3 gap-2"
+          className="border dark:border-gray-700 bg-gray-50 dark:bg-gray-700 p-3 mb-3 rounded grid grid-cols-1 sm:grid-cols-3 gap-2"
         >
           <input
-            className="border rounded p-2"
+            className="border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded p-2"
             placeholder="Allergen"
             value={allergy.allergen || ""}
-            onChange={(e) =>
-              handleChange(index, "allergen", e.target.value)
-            }
+            onChange={(e) => handleChange(index, "allergen", e.target.value)}
           />
+
           <input
-            className="border rounded p-2"
+            className="border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded p-2"
             placeholder="Reaction"
             value={allergy.reaction || ""}
-            onChange={(e) =>
-              handleChange(index, "reaction", e.target.value)
-            }
+            onChange={(e) => handleChange(index, "reaction", e.target.value)}
           />
+
           <select
-            className="border rounded p-2"
+            className="border dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 rounded p-2"
             value={allergy.severity || "Mild"}
-            onChange={(e) =>
-              handleChange(index, "severity", e.target.value)
-            }
+            onChange={(e) => handleChange(index, "severity", e.target.value)}
           >
             <option value="Mild">Mild</option>
             <option value="Moderate">Moderate</option>
@@ -70,7 +65,7 @@ export default function AllergiesForm({ value = [], onChange }) {
           <div className="col-span-full flex justify-end">
             <button
               type="button"
-              className="text-red-600 text-sm"
+              className="text-red-600 dark:text-red-400 text-sm hover:underline"
               onClick={() => handleRemove(index)}
             >
               Remove
@@ -89,4 +84,3 @@ export default function AllergiesForm({ value = [], onChange }) {
     </section>
   );
 }
-

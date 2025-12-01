@@ -10,7 +10,7 @@ import AppointmentList from "../components/appointments/AppointmentList";
 import AppointmentForm from "../components/appointments/AppointmentForm";
 
 export default function Appointments() {
-  const [range, setRange] = useState("upcoming"); // "upcoming" | "past"
+  const [range, setRange] = useState("upcoming");
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -59,8 +59,8 @@ export default function Appointments() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header + create button */}
+    <div className="space-y-4 text-gray-900 dark:text-gray-100">
+      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">My Appointments</h1>
         <button
@@ -72,53 +72,52 @@ export default function Appointments() {
         </button>
       </div>
 
-      {/* Upcoming / Past toggle */}
-      <div className="inline-flex rounded-md border overflow-hidden">
+      {/* Toggle */}
+      <div className="inline-flex rounded-md border dark:border-gray-700 overflow-hidden">
         <button
           type="button"
           onClick={() => setRange("upcoming")}
           className={`px-3 py-1 text-sm ${
             range === "upcoming"
               ? "bg-emerald-600 text-white"
-              : "bg-white text-gray-700"
+              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
           }`}
         >
           Upcoming
         </button>
+
         <button
           type="button"
           onClick={() => setRange("past")}
-          className={`px-3 py-1 text-sm border-l ${
+          className={`px-3 py-1 text-sm border-l dark:border-gray-700 ${
             range === "past"
               ? "bg-emerald-600 text-white"
-              : "bg-white text-gray-700"
+              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200"
           }`}
         >
           Past
         </button>
       </div>
 
-      {/* Errors + loading */}
       {error && <div className="text-sm text-red-600">{error}</div>}
       {loading && (
-        <div className="text-gray-500 text-sm">Loading appointments…</div>
+        <div className="text-gray-500 dark:text-gray-400 text-sm">
+          Loading appointments…
+        </div>
       )}
 
-      {/* Empty state */}
       {!loading && !items.length && !error && (
-        <div className="text-gray-500 text-sm">
+        <div className="text-gray-500 dark:text-gray-400 text-sm">
           {range === "upcoming"
             ? "You have no upcoming appointments."
             : "You have no past appointments."}
         </div>
       )}
 
-      {/* List */}
       {!loading && items.length > 0 && (
         <AppointmentList items={items} onDelete={handleDelete} />
       )}
 
-      {/* Create Appointment modal */}
       <AppointmentForm
         open={isFormOpen}
         onClose={() => setIsFormOpen(false)}
