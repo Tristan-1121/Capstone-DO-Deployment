@@ -5,16 +5,16 @@ import { protect } from '../middleware/auth.js';
 import Practitioner from '../models/Practitioner.js';
 import Appointment from '../models/appointments.js';
 
+const app = express();
+app.use(express.json());
+app.use('/api/practitioners', practitionerRoutes);
+
 jest.mock('../middleware/auth.js', () => ({
   protect: jest.fn(),
 }));
 
 jest.mock('../models/Practitioner.js');
 jest.mock('../models/appointments.js');
-
-const app = express();
-app.use(express.json());
-app.use('/api/practitioners', practitionerRoutes);
 
 describe('Practitioner Routes', () => {
     beforeAll(() => {
@@ -43,6 +43,7 @@ describe('Practitioner Routes', () => {
         jest.clearAllMocks();
     });
 
+    // Tests for GET /api/practitioners/list
     describe('GET /api/practitioners/list', () => {
         it('should return a list of practitioners', async () => {
             const mockPractitioners = [
@@ -82,6 +83,7 @@ describe('Practitioner Routes', () => {
         });
     });
 
+    // Tests for GET /api/practitioners/me/appointments
     describe('GET /api/practitioners/me/appointments', () => {
         it('should return upcoming appointments for the practitioner', async () => {
             const startAtDate = new Date(Date.now() + 86400000); // tomorrow
