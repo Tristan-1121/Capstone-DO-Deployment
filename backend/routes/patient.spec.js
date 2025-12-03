@@ -18,6 +18,16 @@ app.use(express.json());
 app.use("/api/patients", patientRoutes);
 
 describe("Patient Routes", () => {
+  beforeAll(() => {
+    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(console, 'log').mockImplementation(() => {});
+  });
+
+  afterAll(() => {
+    console.error.mockRestore();
+    console.log.mockRestore();
+  });
+
   afterEach(() => {
     jest.clearAllMocks();
   });

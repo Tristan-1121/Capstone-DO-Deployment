@@ -17,6 +17,15 @@ app.use(express.json());
 app.use('/api/practitioners', practitionerRoutes);
 
 describe('Practitioner Routes', () => {
+    beforeAll(() => {
+        // suppress noisy console.error output from route handlers during tests
+        jest.spyOn(console, 'error').mockImplementation(() => {});
+    });
+
+    afterAll(() => {
+        console.error.mockRestore();
+    });
+
     beforeEach(() => {
         // Reset the protect middleware mock to default practitioner user
         protect.mockImplementation((req, res, next) => {
