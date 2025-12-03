@@ -4,6 +4,11 @@ import patientRoutes from "./patient.js";
 import { protect } from "../middleware/auth.js";
 import Patient from "../models/Patient.js";
 
+const app = express();
+app.use(express.json());
+app.use("/api/patients", patientRoutes);
+
+// Mock the auth middleware to inject a fake user
 jest.mock("../middleware/auth.js", () => ({
   protect: jest.fn((req, res, next) => {
     req.user = { _id: "mockUserId", email: "test@example.com", username: "testUser" };
@@ -11,31 +16,30 @@ jest.mock("../middleware/auth.js", () => ({
   }),
 }));
 
+// Mock the Patient model
 jest.mock("../models/Patient.js");
 
-const app = express();
-app.use(express.json());
-app.use("/api/patients", patientRoutes);
-
+//clears mocks between tests
 describe("Patient Routes", () => {
   afterEach(() => {
     jest.clearAllMocks();
   });
 
+// Tests for GET /api/patients/me
   describe("GET /api/patients/me", () => {
     it("should return the current user's patient record", async () => {
       const mockPatient = {
         user: "mockUserId",
         Email: "test@example.com",
-        Name: "Test User",
-        Age: 30,
-        Weight: 70,
-        Height: 170,
+        Name: "Testy McTestface",
+        Age: 21,
+        Weight: 180,
+        Height: 175,
         Sex: "Male",
-        Phone: "1234567890",
-        Address: "123 Test St",
-        City: "Test City",
-        State: "TS",
+        Phone: "8508675309",
+        Address: "123 Test Ln",
+        City: "New Test City",
+        State: "NT",
         Zip: "12345",
         MedHist: [],
         Prescriptions: [],
