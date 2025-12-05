@@ -23,19 +23,19 @@ export const seedPractitioners = async () => {
       {
         firstName: "John",
         lastName: "Doe",
-        email: "jd12@students.uwf.edu",
+        email: "jd14@uwf.edu",
         password: "Password123!",
       },
       {
         firstName: "Jane",
         lastName: "Smith",
-        email: "js34@students.uwf.edu",
+        email: "js36@uwf.edu",
         password: "Password1234!",
       },
       {
         firstName: "Alice",
         lastName: "Johnson",
-        email: "aj56@students.uwf.edu",
+        email: "aj57@uwf.edu",
         password: "Password12345!",
       },
     ];
