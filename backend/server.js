@@ -19,9 +19,14 @@ const PORT = process.env.PORT || 5000;
 
 // Middlewares
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+  origin: [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://uwf-careconnect-pvzl9.ondigitalocean.app/'
+  ],
   credentials: true,
 }));
+
 app.use(express.json());
 
 // Routes
