@@ -1,11 +1,16 @@
+// frontend/src/api/http.js
 import axios from "axios";
 
-const baseURL = import.meta.env.VITE_API_URL || "http://localhost:5000";
+// Base URL for ALL API calls.
+// In production (DO): VITE_API_BASE_URL should be "/api"
+// In dev (local): it falls back to "http://localhost:5000/api"
+const baseURL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
 
 console.log("🔥 API Base URL:", baseURL);
 
 const api = axios.create({
-  baseURL,
+  baseURL, // <- use the variable we just defined
   headers: {
     "Content-Type": "application/json",
   },
@@ -21,5 +26,6 @@ api.interceptors.request.use((config) => {
 });
 
 export default api;
+
 
 
