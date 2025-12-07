@@ -8,7 +8,7 @@ import patientRoutes from './routes/patient.js';
 import appointmentRoutes from './routes/appointment.js';
 import practitionerRoutes from './routes/practitioner.js';
 import notesRoutes from "./routes/notes.js"
-import callbackRoutes from "./routes/callback.js";
+// import callbackRoutes from "./routes/callback.js";
 import { connectDB } from './config/db.js';
 import { seedPractitioners } from './seed.js';
 
@@ -28,7 +28,7 @@ app.use(express.json());
 app.use('/api/users', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/appointments', appointmentRoutes);
-app.use('/api/callbacks', callbackRoutes);
+// app.use('/api/callbacks', callbackRoutes);
 app.use('/api/practitioners', practitionerRoutes);
 app.use('/api/notes', notesRoutes);
 
